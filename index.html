@@ -6,16 +6,60 @@
 <title>Homebase — Luzecky Real Estate</title>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com"/>
 <style>
+  /* ── Design tokens ──────────────────────────────────────────────
+     Defined on :root so portaled report frames and html2canvas
+     rasterisation resolve them identically to the main tree. */
+  :root{
+    --ink:#1c1f26;      --ink-2:#5c626e;    --ink-3:#8b909b;
+    --paper:#faf9f4;    --surface:#ffffff;  --surface-2:#fdfcf9; --surface-3:#f2f0e9;
+    --line:#e6e2d8;     --line-2:#d3cec1;   --line-3:#b8b3a5;
+    --rule:#c9c3b4;
+    --accent:#2f4034;   --accent-2:#b5a36f;
+    --ok:#0f7a52;       --warn:#8a6d1f;     --bad:#b3392c;
+    --r-sm:7px;         --r:10px;           --r-lg:14px;
+    --sh-1:0 1px 2px rgba(28,31,38,0.05);
+    --sh-2:0 2px 8px rgba(28,31,38,0.07), 0 1px 2px rgba(28,31,38,0.04);
+    --sh-3:0 10px 30px rgba(28,31,38,0.13), 0 2px 6px rgba(28,31,38,0.06);
+    --shell-pad-x:28px; --shell-pad-y:26px;
+  }
   html,body{margin:0;padding:0;background:#e9e6df;}
   #root{min-height:100vh;}
-  #boot{font-family:Georgia,serif;color:#5b606b;text-align:center;padding:80px 20px;}
+  #boot{font-family:Georgia,serif;color:var(--ink-2);text-align:center;padding:80px 20px;}
   *{-webkit-font-smoothing:antialiased;}
-  :root{--accent:#2f4034;--accent-2:#b5a36f;}
-  button{transition:background .12s ease,border-color .12s ease,color .12s ease;}
+  button{transition:background .12s ease,border-color .12s ease,color .12s ease,box-shadow .12s ease;}
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(181,163,111,0.55);outline-offset:1px;}
   input,select,textarea{transition:border-color .12s ease,box-shadow .12s ease;}
-  .hb-hover{transition:box-shadow .15s ease,transform .15s ease;}
-  .hb-hover:hover{box-shadow:0 3px 14px rgba(35,38,45,0.10);transform:translateY(-1px);}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent-2)!important;box-shadow:0 0 0 3px rgba(181,163,111,0.16);}
+  .hb-hover{transition:box-shadow .15s ease,transform .15s ease,border-color .15s ease;}
+  .hb-hover:hover{box-shadow:var(--sh-2);transform:translateY(-1px);}
+
+  /* ── Responsive layout primitives ──────────────────────────────
+     Inline styles can't carry media queries, so the grids that must
+     reflow are driven by these classes instead. align-items:start
+     stops a short panel from stretching to its neighbour's height. */
+  .hb-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start;}
+  .hb-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start;}
+  .hb-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  .hb-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .hb-tabs::-webkit-scrollbar{display:none;}
+  .hb-tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .hb-sechead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+
+  @media (max-width:900px){
+    :root{--shell-pad-x:18px;--shell-pad-y:20px;}
+    .hb-grid-4{grid-template-columns:repeat(2,1fr);}
+    .hb-grid-3{grid-template-columns:repeat(2,1fr);}
+    .hb-grid-2{grid-template-columns:1fr;}
+  }
+  @media (max-width:560px){
+    :root{--shell-pad-x:13px;--shell-pad-y:16px;}
+    .hb-grid-4,.hb-grid-3{grid-template-columns:1fr;}
+  }
+  /* Comfortable touch targets on real phones without inflating desktop. */
+  @media (max-width:560px) and (pointer:coarse){
+    input,select,textarea{font-size:16px!important;padding:9px 11px!important;}
+    button{min-height:36px;}
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
@@ -443,7 +487,7 @@ const SEED_PROFILE = {
   ],
   brands:[
     { id:"luzecky", name:"Luzecky Real Estate", tagline:"Rooted in St. Louis. Invested in you.", logo:"", ink:"#2f4034", accent:"#c9b98a", paper:"#f7f5ef" },
-    { id:"onedegree", name:"1 Degree Realty", tagline:"", logo:"", ink:"#23262d", accent:"#a8813a", paper:"#f7f5ef" },
+    { id:"onedegree", name:"1 Degree Realty", tagline:"", logo:"", ink:"var(--ink)", accent:"#a8813a", paper:"#f7f5ef" },
   ],
 };
 
@@ -462,7 +506,7 @@ function brandList(profile){
   if(Array.isArray(profile?.brands)&&profile.brands.length) return profile.brands;
   return [
     { id:"luzecky", name:profile?.luzeckyName||"Luzecky Real Estate", tagline:profile?.luzeckyTagline||"", logo:"", ink:"#2f4034", accent:"#c9b98a", paper:"#f7f5ef" },
-    { id:"onedegree", name:"1 Degree Realty", tagline:"", logo:"", ink:"#23262d", accent:"#a8813a", paper:"#f7f5ef" },
+    { id:"onedegree", name:"1 Degree Realty", tagline:"", logo:"", ink:"var(--ink)", accent:"#a8813a", paper:"#f7f5ef" },
   ];
 }
 
@@ -659,17 +703,27 @@ const useStore = (key, seed) => {
 
 // ════════════════════════ CHART PRIMITIVES ════════════════════════
 function Bar({data,color="var(--accent)",h=110}) {
-  const max=Math.max(...data.map(d=>d.v),1);const W=data.length*54;
-  return <svg viewBox={`0 0 ${W} ${h+32}`} style={{width:"100%",overflow:"visible"}}>
-    {data.map((d,i)=>{const bh=Math.max(2,(d.v/max)*(h-18));const x=i*54+4;const y=h-bh;
-      return <g key={i}><rect x={x} y={y} width={46} height={bh} rx={3} fill={color} opacity={0.82}/><text x={x+23} y={h+14} textAnchor="middle" fontSize={10} fill="var(--color-text-secondary)">{d.l}</text><text x={x+23} y={y-4} textAnchor="middle" fontSize={9} fill="var(--color-text-secondary)">{d.f||fmtS(d.v)}</text></g>;})}
+  const max=Math.max(...data.map(d=>d.v),1);
+  // Widen the bars when there are few of them, so a 2-point chart doesn't
+  // sit as a narrow sliver in a wide panel. Slot = bar + 8px gutter.
+  const n=data.length;
+  const SLOT = n<=2 ? 132 : n<=4 ? 104 : n<=6 ? 78 : 54;
+  const BW = SLOT-8;
+  const W = n*SLOT;
+  // An explicit height is required: with only a viewBox and width:100% the
+  // SVG preserves aspect ratio and scales to the container, so a 2-bar chart
+  // rendered ~6x oversized. Height pins the vertical scale; "meet" centres
+  // narrow charts instead of stretching them.
+  return <svg viewBox={`0 0 ${W} ${h+32}`} height={h+32} preserveAspectRatio="xMidYMid meet" style={{width:"100%",maxWidth:W,display:"block",margin:"0 auto",overflow:"visible"}}>
+    {data.map((d,i)=>{const bh=Math.max(2,(d.v/max)*(h-18));const x=i*SLOT+4;const y=h-bh;const cx=x+BW/2;
+      return <g key={i}><rect x={x} y={y} width={BW} height={bh} rx={3} fill={color} opacity={0.86}/><text x={cx} y={h+14} textAnchor="middle" fontSize={10} fill="var(--ink-2)">{d.l}</text><text x={cx} y={y-5} textAnchor="middle" fontSize={9.5} fontWeight="600" fill="var(--ink-2)">{d.f||fmtS(d.v)}</text></g>;})}
   </svg>;
 }
 function Line({series,h=140}) {
   const all=series.flatMap(s=>s.data.map(d=>d.v));const max=Math.max(...all,1);const labels=series[0]?.data.map(d=>d.l)||[];
   const W=Math.max(labels.length*56,200);const pad={t:20,b:26,l:8,r:8};
   const xs=(i)=>pad.l+i*(W/(Math.max(labels.length-1,1)));const ys=(v)=>pad.t+(1-v/max)*(h-pad.t-pad.b);
-  return <svg viewBox={`0 0 ${W+16} ${h}`} style={{width:"100%",overflow:"visible"}}>
+  return <svg viewBox={`0 0 ${W+16} ${h}`} height={h} preserveAspectRatio="xMidYMid meet" style={{width:"100%",display:"block",overflow:"visible"}}>
     {[0,0.5,1].map(f=><line key={f} x1={pad.l} x2={W+pad.r} y1={ys(f*max)} y2={ys(f*max)} stroke="var(--color-border-tertiary)" strokeWidth={0.5}/>)}
     {series.map((s,si)=>{const pts=s.data.map((d,i)=>`${xs(i)},${ys(d.v)}`).join(" ");const fp=[`${xs(0)},${ys(0)}`,...s.data.map((d,i)=>`${xs(i)},${ys(d.v)}`),`${xs(s.data.length-1)},${ys(0)}`].join(" ");
       return <g key={si}><polygon points={fp} fill={CC[si]} opacity={0.07}/><polyline points={pts} fill="none" stroke={CC[si]} strokeWidth={2} strokeLinejoin="round"/>{s.data.map((d,i)=><circle key={i} cx={xs(i)} cy={ys(d.v)} r={3} fill={CC[si]}/>)}</g>;})}
@@ -685,15 +739,15 @@ function Donut({segs,size=120}) {
 // ════════════════════════ FORM PRIMITIVES ════════════════════════
 const inp = (val,set,ph,type="text",style={}) => (
   <input type={type} placeholder={ph} value={val??""} onChange={e=>set(e.target.value)}
-    style={{padding:"5px 8px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif",width:"100%",...style}}/>
+    style={{padding:"7px 10px",fontSize:12.5,borderRadius:"var(--r-sm)",border:"1px solid var(--line-2)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS,width:"100%",boxSizing:"border-box",...style}}/>
 );
 const sel = (val,set,opts,style={}) => (
   <select value={val} onChange={e=>set(e.target.value)}
-    style={{padding:"5px 8px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif",width:"100%",...style}}>
+    style={{padding:"7px 10px",fontSize:12.5,borderRadius:"var(--r-sm)",border:"1px solid var(--line-2)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS,width:"100%",boxSizing:"border-box",...style}}>
     {opts.map(o=><option key={o.v??o} value={o.v??o}>{o.l??o}</option>)}
   </select>
 );
-const Pill = ({children,color}) => <span style={{fontSize:10,padding:"2.5px 9px",borderRadius:999,background:color?.bg||"#f3f4f6",color:color?.text||"#374151",fontWeight:500,whiteSpace:"nowrap"}}>{children}</span>;
+const Pill = ({children,color}) => <span style={{fontSize:10.5,padding:"3px 10px",borderRadius:999,background:color?.bg||"#f3f4f6",color:color?.text||"#374151",fontWeight:600,letterSpacing:"0.02em",whiteSpace:"nowrap",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif"}}>{children}</span>;
 
 // ════════════════════════ TITLE EMAIL ENGINE ════════════════════════
 // Turns one pipeline transaction into { subject, to, cc, body }. Reads the
@@ -843,45 +897,45 @@ function Homebase() {
     return ()=>{};
   },[settings&&settings.accent,settings&&settings.accent2]);
 
-  const parentS=(k)=>({padding:"9px 16px 11px",fontSize:13.5,fontWeight:parent===k?700:500,letterSpacing:"0.02em",color:parent===k?"var(--color-text-primary)":"#9a9ea7",background:"none",border:"none",borderBottom:parent===k?"2.5px solid var(--accent-2)":"2.5px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",whiteSpace:"nowrap",transition:"color .12s ease"});
+  const parentS=(k)=>({padding:"9px 16px 11px",fontSize:13.5,fontWeight:parent===k?700:500,letterSpacing:"0.02em",color:parent===k?"var(--color-text-primary)":"var(--ink-3)",background:"none",border:"none",borderBottom:parent===k?"2.5px solid var(--accent-2)":"2.5px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",whiteSpace:"nowrap",transition:"color .12s ease"});
 
   return (
     <SettingsCtx.Provider value={settings}>
     <div style={{
         // editorial palette — overrides host vars for the whole subtree (fixed light, designed)
-        "--color-background-primary":"#ffffff",
+        "--color-background-primary":"var(--surface)",
         "--accent": (settings&&settings.accent)||"#2f4034",
         "--accent-2": (settings&&settings.accent2)||"#b5a36f",
         "--rowpad-y": (settings&&settings.density==="compact")?"3px":"7px",
         "--rowpad-x": (settings&&settings.density==="compact")?"6px":"9px",
-        "--color-background-secondary":"#f3f1ea",
+        "--color-background-secondary":"var(--surface-3)",
         "--color-background-tertiary":"#edeae1",
-        "--color-text-primary":"#23262d",
-        "--color-text-secondary":"#6a6f7a",
-        "--color-text-tertiary":"#9a9ea7",
-        "--color-border-tertiary":"#e3e0d6",
-        "--color-border-secondary":"#cdc9bd",
+        "--color-text-primary":"var(--ink)",
+        "--color-text-secondary":"var(--ink-2)",
+        "--color-text-tertiary":"var(--ink-3)",
+        "--color-border-tertiary":"var(--line)",
+        "--color-border-secondary":"var(--line-2)",
         "--color-border-primary":"#b4afa1",
         fontFamily:"'Georgia',serif",
-        color:"#23262d",
-        background:"#fbfaf5",
-        border:"1px solid #e3e0d6",
+        color:"var(--ink)",
+        background:"var(--paper)",
+        border:"1px solid var(--line)",
         borderRadius:8,
-        maxWidth:980, margin:"0 auto", padding:"26px 28px 48px"
+        maxWidth:1080, margin:"0 auto", padding:"var(--shell-pad-y) var(--shell-pad-x) 48px"
       }}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,paddingBottom:16,borderBottom:"2px solid #23262d"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,paddingBottom:16,borderBottom:"1.5px solid var(--line-3)"}}>
         {brandList(profile)[0]&&brandList(profile)[0].logo
           ? <img src={brandList(profile)[0].logo} alt="" style={{height:34,maxWidth:150,objectFit:"contain",flexShrink:0}}/>
           : <div style={{width:34,height:34,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
         </div>}
         <div style={{flex:1}}>
-          <h2 style={{fontSize:24,fontWeight:700,color:"#23262d",margin:0,letterSpacing:"-0.4px"}}>Homebase</h2>
-          <div style={{fontSize:11,color:"#6a6f7a",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",marginTop:1,textTransform:"uppercase",letterSpacing:"0.12em"}}>Every transaction, one place · Luzecky Real Estate</div>
+          <h2 style={{fontSize:24,fontWeight:700,color:"var(--ink)",margin:0,letterSpacing:"-0.4px"}}>Homebase</h2>
+          <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",marginTop:1,textTransform:"uppercase",letterSpacing:"0.12em"}}>Every transaction, one place · Luzecky Real Estate</div>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:2,marginBottom:24,flexWrap:"wrap",borderBottom:"1px solid #ddd8ca"}}>
+      <div className="hb-tabs" style={{marginBottom:24,borderBottom:"1px solid var(--line)"}}>
         {[["home","Home"],["sales","My Sales"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
       </div>
 
@@ -898,14 +952,14 @@ function Homebase() {
 // shared sub-tab styling
 const SANS="'Helvetica Neue',Helvetica,Arial,sans-serif";
 const SERIF="'Georgia','Times New Roman',serif";
-const subTab=(active)=>({padding:"8px 16px",fontSize:13,fontWeight:active?700:500,fontFamily:SERIF,color:active?"#23262d":"#7c818c",background:"none",border:"none",borderBottom:active?"2.5px solid var(--accent)":"2.5px solid transparent",cursor:"pointer",whiteSpace:"nowrap",letterSpacing:"0.01em"});
-const chip=(active)=>({fontSize:12,padding:"5px 13px",borderRadius:999,border:"1px solid",fontFamily:SANS,fontWeight:active?600:400,cursor:"pointer",background:active?"var(--accent)":"#ffffff",color:active?"#fff":"#5b606b",borderColor:active?"var(--accent)":"#d8d4c8"});
-const thS={textAlign:"left",padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontSize:10,color:"#6a6f7a",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap",fontFamily:SANS,borderBottom:"2px solid #23262d",background:"#efece4"};
-const tdS=(e={})=>({padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontFamily:SANS,fontSize:12.5,borderBottom:"1px solid #e3e0d6",fontVariantNumeric:"tabular-nums",...e});
-const Card=({l,v,accent})=>(<div style={{background:"#ffffff",border:"1px solid #e0dccf",borderTop:`3px solid ${accent||"var(--accent)"}`,borderRadius:10,overflow:"hidden",boxShadow:"0 1px 2px rgba(35,38,45,0.04)",padding:"11px 13px"}}><div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:4}}>{l}</div><div style={{fontSize:21,fontWeight:700,color:accent||"#23262d",fontFamily:SERIF,fontVariantNumeric:"tabular-nums"}}>{v}</div></div>);
-const Section=({title,children})=>(<div style={{background:"#fdfcf9",border:"1px solid #e0dccf",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 2px rgba(35,38,45,0.04)",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"#23262d",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em",padding:"9px 14px",borderBottom:"2px solid #23262d"}}>{title}</div><div style={{padding:14}}>{children}</div></div>);
-const btnPrimary={fontSize:12,padding:"7px 15px",borderRadius:6,border:"1px solid var(--accent)",background:"var(--accent)",color:"#fff",cursor:"pointer",fontFamily:SANS,fontWeight:600};
-const btnGhost={fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #cdc9bd",background:"#ffffff",color:"#5b606b",cursor:"pointer",fontFamily:SANS};
+const subTab=(active)=>({padding:"8px 16px",fontSize:13,fontWeight:active?700:500,fontFamily:SERIF,color:active?"var(--ink)":"var(--ink-2)",background:"none",border:"none",borderBottom:active?"2.5px solid var(--accent)":"2.5px solid transparent",cursor:"pointer",whiteSpace:"nowrap",letterSpacing:"0.01em"});
+const chip=(active)=>({fontSize:12,padding:"5px 13px",borderRadius:999,border:"1px solid",fontFamily:SANS,fontWeight:active?600:400,cursor:"pointer",background:active?"var(--accent)":"var(--surface)",color:active?"#fff":"var(--ink-2)",borderColor:active?"var(--accent)":"var(--line-2)"});
+const thS={textAlign:"left",padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontSize:10,color:"var(--ink-2)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap",fontFamily:SANS,borderBottom:"1px solid var(--line-2)",background:"var(--surface-3)",position:"sticky",top:0,zIndex:1};
+const tdS=(e={})=>({padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontFamily:SANS,fontSize:12.5,borderBottom:"1px solid var(--line)",fontVariantNumeric:"tabular-nums",...e});
+const Card=({l,v,accent})=>(<div style={{background:"var(--surface)",border:"1px solid var(--line)",borderTop:`3px solid ${accent||"var(--accent)"}`,borderRadius:"var(--r)",overflow:"hidden",boxShadow:"var(--sh-1)",padding:"12px 14px"}}><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:4}}>{l}</div><div style={{fontSize:21,fontWeight:700,color:accent||"var(--ink)",fontFamily:SERIF,fontVariantNumeric:"tabular-nums"}}>{v}</div></div>);
+const Section=({title,children})=>(<div style={{background:"var(--surface-2)",border:"1px solid var(--line)",borderRadius:"var(--r)",overflow:"hidden",boxShadow:"var(--sh-1)",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--ink)",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em",padding:"9px 14px",borderBottom:"1px solid var(--rule)"}}>{title}</div><div style={{padding:14}}>{children}</div></div>);
+const btnPrimary={fontSize:12,padding:"8px 16px",borderRadius:"var(--r-sm)",border:"1px solid var(--accent)",background:"var(--accent)",color:"#fff",cursor:"pointer",fontFamily:SANS,fontWeight:600,letterSpacing:"0.01em",boxShadow:"var(--sh-1)"};
+const btnGhost={fontSize:12,padding:"7px 13px",borderRadius:"var(--r-sm)",border:"1px solid var(--line-2)",background:"var(--surface)",color:"var(--ink-2)",cursor:"pointer",fontFamily:SANS,fontWeight:500};
 const typeColor=(t)=>t==="B"?{bg:"#dbeafe",text:"#1e40af"}:t==="S"?{bg:"#dcfce7",text:"#166534"}:{bg:"#f3f4f6",text:"#374151"};
 
 // ════════════════════════ HOME DASHBOARD ════════════════════════
@@ -946,14 +1000,14 @@ function Dashboard({hist,escrow,cmas,contacts,go,profile}) {
   const pipeCounts={};escrow.forEach(r=>{pipeCounts[r.status]=(pipeCounts[r.status]||0)+1;});
 
   const initials=(n)=>n.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
-  const Tile=({l,v,sub,accent,onClick})=>(<div onClick={onClick} className={onClick?"hb-hover":""} style={{background:"#ffffff",border:"1px solid #e0dccf",borderTop:`3px solid ${accent||"var(--accent)"}`,borderRadius:10,overflow:"hidden",boxShadow:"0 1px 2px rgba(35,38,45,0.04)",padding:"12px 14px",cursor:onClick?"pointer":"default"}}>
-    <div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:4}}>{l}</div>
-    <div style={{fontSize:22,fontWeight:700,color:accent||"#23262d",fontFamily:SERIF,fontVariantNumeric:"tabular-nums"}}>{v}</div>
-    {sub&&<div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginTop:3}}>{sub}</div>}
+  const Tile=({l,v,sub,accent,onClick})=>(<div onClick={onClick} className={onClick?"hb-hover":""} style={{background:"var(--surface)",border:"1px solid var(--line)",borderTop:`3px solid ${accent||"var(--accent)"}`,borderRadius:"var(--r)",overflow:"hidden",boxShadow:"var(--sh-1)",padding:"13px 15px",cursor:onClick?"pointer":"default",minWidth:0}}>
+    <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:4}}>{l}</div>
+    <div style={{fontSize:"clamp(18px,4.4vw,22px)",fontWeight:700,color:accent||"var(--ink)",fontFamily:SERIF,fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v}</div>
+    {sub&&<div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:3}}>{sub}</div>}
   </div>);
-  const SecLink=({title,onClick,children})=>(<div style={{background:"#fdfcf9",border:"1px solid #e0dccf",borderRadius:10,overflow:"hidden",boxShadow:"0 1px 2px rgba(35,38,45,0.04)"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 14px",borderBottom:"2px solid #23262d"}}>
-      <span style={{fontSize:13,fontWeight:700,color:"#23262d",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em"}}>{title}</span>
+  const SecLink=({title,onClick,children})=>(<div style={{background:"var(--surface-2)",border:"1px solid var(--line)",borderRadius:"var(--r)",overflow:"hidden",boxShadow:"var(--sh-1)",minWidth:0}}>
+    <div className="hb-sechead" style={{padding:"10px 14px",borderBottom:"1px solid var(--line)"}}>
+      <span style={{fontSize:13,fontWeight:700,color:"var(--ink)",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em"}}>{title}</span>
       {onClick&&<button onClick={onClick} style={{...btnGhost,fontSize:11,padding:"3px 9px"}}>Open →</button>}
     </div>
     <div style={{padding:12}}>{children}</div>
@@ -964,61 +1018,61 @@ function Dashboard({hist,escrow,cmas,contacts,go,profile}) {
 
   return <div>
     <div style={{marginBottom:18}}>
-      <div style={{fontFamily:SERIF,fontSize:19,fontWeight:700,color:"#23262d"}}>{greeting}{(profile&&profile.agentName)?`, ${profile.agentName.trim().split(/\s+/)[0]}`:""}.</div>
-      <div style={{fontFamily:SANS,fontSize:12,color:"#6a6f7a"}}>{longDate}</div>
+      <div style={{fontFamily:SERIF,fontSize:19,fontWeight:700,color:"var(--ink)"}}>{greeting}{(profile&&profile.agentName)?`, ${profile.agentName.trim().split(/\s+/)[0]}`:""}.</div>
+      <div style={{fontFamily:SANS,fontSize:12,color:"var(--ink-2)"}}>{longDate}</div>
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+    <div className="hb-grid-4" style={{marginBottom:18}}>
       <Tile l="Pipeline Volume" v={fmtS(pipeVol)} sub={`${escrow.length} active · ${fmt(pipeAgent)} agent comm`} onClick={()=>go("sales")}/>
       <Tile l={`YTD Agent Comm (${yr})`} v={fmt(cur.agent)} sub={pct===null?`${cur.n} closings`:`${cur.n} closings · ${pct>=0?"+":""}${pct}% vs ${yr-1} YTD`} accent="#0f7a52" onClick={()=>go("sales")}/>
       <Tile l="Active Clients" v={String(activeClients)} sub={`${contacts.length} contacts total`} accent="#6b21a8" onClick={()=>go("crm")}/>
       <Tile l="CMAs Out" v={String(cmas.filter(c=>c.status==="Sent to Client").length)} sub={`${cmaAttn.length} need attention`} accent="#8a6d1f" onClick={()=>go("cmas")}/>
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+    <div className="hb-grid-2" style={{marginBottom:14}}>
       <SecLink title={`Upcoming deadlines · ${dlDays} days`} onClick={()=>go("sales")}>
-        {upcoming.length===0?<div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,padding:"6px 0"}}>Nothing due in the next two weeks.</div>:
-          upcoming.slice(0,8).map((e,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<Math.min(upcoming.length,8)-1?"1px solid #e3e0d6":"none"}}>
-            <div style={{width:42,textAlign:"center",flexShrink:0}}><div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"#23262d"}}>{e.dt.getDate()}</div><div style={{fontSize:9,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase"}}>{MONTHS[e.dt.getMonth()].slice(0,3)}</div></div>
+        {upcoming.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"6px 0"}}>Nothing due in the next two weeks.</div>:
+          upcoming.slice(0,8).map((e,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<Math.min(upcoming.length,8)-1?"1px solid var(--line)":"none"}}>
+            <div style={{width:42,textAlign:"center",flexShrink:0}}><div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"var(--ink)"}}>{e.dt.getDate()}</div><div style={{fontSize:9,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase"}}>{MONTHS[e.dt.getMonth()].slice(0,3)}</div></div>
             <div style={{width:3,alignSelf:"stretch",background:CONTINGENCY_COLORS[e.key]}}/>
-            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"#23262d",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.addr}</div><div style={{fontFamily:SANS,fontSize:11,color:CONTINGENCY_COLORS[e.key]}}>{e.label}</div></div>
-            <div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,whiteSpace:"nowrap"}}>{days(e.dt,today)===0?"today":`${days(e.dt,today)}d`}</div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"var(--ink)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.addr}</div><div style={{fontFamily:SANS,fontSize:11,color:CONTINGENCY_COLORS[e.key]}}>{e.label}</div></div>
+            <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,whiteSpace:"nowrap"}}>{days(e.dt,today)===0?"today":`${days(e.dt,today)}d`}</div>
           </div>)}
         {passed.length>0&&<div style={{fontSize:11,color:"#b3392c",fontFamily:SANS,marginTop:8}}>{passed.length} deadline{passed.length>1?"s":""} passed recently on pending deals — review.</div>}
       </SecLink>
 
       <SecLink title="Follow-ups due" onClick={()=>go("crm")}>
-        {dueSoon.length===0?<div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,padding:"6px 0"}}>No follow-ups due in the next {fuDays} days.</div>:
-          dueSoon.slice(0,8).map((c,i)=>{const od=c.dt<today;return <div key={c.id} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 0",borderBottom:i<Math.min(dueSoon.length,8)-1?"1px solid #e3e0d6":"none"}}>
+        {dueSoon.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"6px 0"}}>No follow-ups due in the next {fuDays} days.</div>:
+          dueSoon.slice(0,8).map((c,i)=>{const od=c.dt<today;return <div key={c.id} style={{display:"flex",alignItems:"center",gap:9,padding:"6px 0",borderBottom:i<Math.min(dueSoon.length,8)-1?"1px solid var(--line)":"none"}}>
             <span style={{width:26,height:26,borderRadius:"50%",background:"#ece9fb",color:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,fontFamily:SANS,flexShrink:0}}>{initials(c.name)}</span>
-            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"#23262d",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div><div style={{fontFamily:SANS,fontSize:11,color:"#6a6f7a"}}>{c.type} · {c.stage}</div></div>
-            <div style={{fontSize:10,fontFamily:SANS,fontWeight:od?700:400,color:od?"#b3392c":"#6a6f7a",whiteSpace:"nowrap"}}>{od?"overdue":days(c.dt,today)===0?"today":`${days(c.dt,today)}d`}</div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"var(--ink)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div><div style={{fontFamily:SANS,fontSize:11,color:"var(--ink-2)"}}>{c.type} · {c.stage}</div></div>
+            <div style={{fontSize:10,fontFamily:SANS,fontWeight:od?700:400,color:od?"#b3392c":"var(--ink-2)",whiteSpace:"nowrap"}}>{od?"overdue":days(c.dt,today)===0?"today":`${days(c.dt,today)}d`}</div>
           </div>;})}
       </SecLink>
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+    <div className="hb-grid-2" style={{marginBottom:14}}>
       <SecLink title="Projected commission by closing month" onClick={()=>go("sales")}>
-        {forecast.length===0?<div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,padding:"6px 0"}}>No scheduled closings with commission yet.</div>:<>
-          <div style={{fontFamily:SERIF,fontSize:20,fontWeight:700,color:"#0f7a52",marginBottom:8}}>{fmt(forecast.reduce((s,o)=>s+o.v,0))}<span style={{fontFamily:SANS,fontSize:11,fontWeight:400,color:"#6a6f7a",marginLeft:6}}>projected pipeline comm</span></div>
+        {forecast.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"6px 0"}}>No scheduled closings with commission yet.</div>:<>
+          <div style={{fontFamily:SERIF,fontSize:20,fontWeight:700,color:"#0f7a52",marginBottom:8}}>{fmt(forecast.reduce((s,o)=>s+o.v,0))}<span style={{fontFamily:SANS,fontSize:11,fontWeight:400,color:"var(--ink-2)",marginLeft:6}}>projected pipeline comm</span></div>
           <Bar data={forecast} color="#0f7a52" h={90}/>
         </>}
       </SecLink>
 
       <SecLink title="CMAs needing attention" onClick={()=>go("cmas")}>
-        {cmaAttn.length===0?<div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,padding:"6px 0"}}>All CMAs are resolved.</div>:
-          cmaAttn.slice(0,7).map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<Math.min(cmaAttn.length,7)-1?"1px solid #e3e0d6":"none"}}>
-            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"#23262d",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.subject}</div><div style={{fontFamily:SANS,fontSize:11,color:"#6a6f7a"}}>{c.client||"—"} · {c.suggested?fmt(c.suggested):"—"}</div></div>
+        {cmaAttn.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"6px 0"}}>All CMAs are resolved.</div>:
+          cmaAttn.slice(0,7).map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<Math.min(cmaAttn.length,7)-1?"1px solid var(--line)":"none"}}>
+            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"var(--ink)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.subject}</div><div style={{fontFamily:SANS,fontSize:11,color:"var(--ink-2)"}}>{c.client||"—"} · {c.suggested?fmt(c.suggested):"—"}</div></div>
             <Pill color={cmaColors[c.status||"Draft"]||{bg:"#eee",text:"#555"}}>{c.status||"Draft"}</Pill>
           </div>)}
       </SecLink>
     </div>
 
-    <div style={{background:"#fdfcf9",border:"1px solid #cdc9bd",padding:"12px 14px"}}>
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--line-2)",padding:"12px 14px"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:11,fontWeight:700,color:"#23262d",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em",marginRight:4}}>Pipeline</span>
-        {pipeStatuses.filter(s=>pipeCounts[s]).map(s=>{const sc=statusColors[s]||{bg:"#eee",text:"#555"};return <span key={s} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,fontFamily:SANS,padding:"3px 10px",borderRadius:14,background:sc.bg,color:sc.text,fontWeight:600}}>{s}<span style={{background:"#ffffff",borderRadius:8,padding:"0 6px"}}>{pipeCounts[s]}</span></span>;})}
-        {nextClosing&&<span style={{marginLeft:"auto",fontSize:11,fontFamily:SANS,color:"#6a6f7a"}}>Next closing: <strong style={{color:"#23262d"}}>{nextClosing.r.address}</strong> on {isoToShort(nextClosing.r.closing)} ({days(nextClosing.dt,today)}d)</span>}
+        <span style={{fontSize:11,fontWeight:700,color:"var(--ink)",fontFamily:SERIF,fontVariant:"small-caps",letterSpacing:"0.03em",marginRight:4}}>Pipeline</span>
+        {pipeStatuses.filter(s=>pipeCounts[s]).map(s=>{const sc=statusColors[s]||{bg:"#eee",text:"#555"};return <span key={s} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,fontFamily:SANS,padding:"3px 10px",borderRadius:14,background:sc.bg,color:sc.text,fontWeight:600}}>{s}<span style={{background:"var(--surface)",borderRadius:8,padding:"0 6px"}}>{pipeCounts[s]}</span></span>;})}
+        {nextClosing&&<span style={{marginLeft:"auto",fontSize:11,fontFamily:SANS,color:"var(--ink-2)"}}>Next closing: <strong style={{color:"var(--ink)"}}>{nextClosing.r.address}</strong> on {isoToShort(nextClosing.r.closing)} ({days(nextClosing.dt,today)}d)</span>}
       </div>
     </div>
   </div>;
@@ -1048,19 +1102,19 @@ function TitleEmailModal({row, patch, profile, onClose}) {
   const lbl={fontSize:10,fontWeight:700,fontFamily:SANS,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6,display:"block"};
   return <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(20,20,25,0.5)",overflow:"auto",padding:"24px 14px"}} onClick={onClose}>
     <div onClick={e=>e.stopPropagation()} style={{maxWidth:900,margin:"0 auto",background:"#f7f4ec",borderRadius:12,boxShadow:"0 14px 44px rgba(0,0,0,0.32)",overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid #cdc9bd",background:"#fff"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--line-2)",background:"#fff"}}>
         <div>
           <div style={{fontFamily:SERIF,fontSize:17,fontWeight:700,color:"var(--accent)"}}>{tmplId==="title"?"Title Company Cover Email":selT.label}</div>
-          <div style={{fontFamily:SANS,fontSize:12,color:"#6a6f7a"}}>{row.address}</div>
+          <div style={{fontFamily:SANS,fontSize:12,color:"var(--ink-2)"}}>{row.address}</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <div style={{display:"flex",gap:4,marginRight:4,flexWrap:"wrap"}}>{allTpls.map(t=><button key={t.id} onClick={()=>setTmplId(t.id)} style={{fontSize:11,padding:"5px 11px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:tmplId===t.id?700:500,background:tmplId===t.id?"var(--accent)":"#fff",color:tmplId===t.id?"#fff":"#5b606b",borderColor:tmplId===t.id?"var(--accent)":"#cdc9bd"}}>{t.label}</button>)}</div>
-          {tmplId==="title"&&["buy","sell"].map(s=><button key={s} onClick={()=>patch(row.id,{side:s})} style={{fontSize:11,padding:"5px 12px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:(row.side||"buy")===s?700:500,background:(row.side||"buy")===s?"var(--accent)":"#fff",color:(row.side||"buy")===s?"#fff":"#5b606b",borderColor:(row.side||"buy")===s?"var(--accent)":"#cdc9bd"}}>{s==="buy"?"Buy-side":"List-side"}</button>)}
+          <div style={{display:"flex",gap:4,marginRight:4,flexWrap:"wrap"}}>{allTpls.map(t=><button key={t.id} onClick={()=>setTmplId(t.id)} style={{fontSize:11,padding:"5px 11px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:tmplId===t.id?700:500,background:tmplId===t.id?"var(--accent)":"#fff",color:tmplId===t.id?"#fff":"var(--ink-2)",borderColor:tmplId===t.id?"var(--accent)":"var(--line-2)"}}>{t.label}</button>)}</div>
+          {tmplId==="title"&&["buy","sell"].map(s=><button key={s} onClick={()=>patch(row.id,{side:s})} style={{fontSize:11,padding:"5px 12px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:(row.side||"buy")===s?700:500,background:(row.side||"buy")===s?"var(--accent)":"#fff",color:(row.side||"buy")===s?"#fff":"var(--ink-2)",borderColor:(row.side||"buy")===s?"var(--accent)":"var(--line-2)"}}>{s==="buy"?"Buy-side":"List-side"}</button>)}
           <button onClick={onClose} style={{...btnGhost,marginLeft:6}}>Close</button>
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"minmax(240px,1fr) minmax(300px,1.4fr)",gap:0}}>
-        <div style={{padding:"16px 18px",borderRight:"1px solid #e3e0d6",background:"#fbf9f3"}}>
+        <div style={{padding:"16px 18px",borderRight:"1px solid var(--line)",background:"#fbf9f3"}}>
           {tmplId==="title"?<>
           <div style={{marginBottom:16}}>
             <span style={lbl}>Recipients (Title Team)</span>
@@ -1092,33 +1146,33 @@ function TitleEmailModal({row, patch, profile, onClose}) {
             <span style={lbl}>My Brokerage Label</span>
             {inp(row.myBrokerage||"",v=>patch(row.id,{myBrokerage:v}),"1 Degree",undefined,{fontSize:11})}
           </div>
-          <div style={{fontSize:10.5,color:"#9a9ea7",fontFamily:SANS,marginTop:14,lineHeight:1.5}}>
+          <div style={{fontSize:10.5,color:"var(--ink-3)",fontFamily:SANS,marginTop:14,lineHeight:1.5}}>
             Parties, lender, commissions, price and all contingency dates pull from the transaction's detail panel and date columns. Edit those in the row; this preview updates live.
           </div>
           </>:<>
           <span style={lbl}>Merge fields in this template</span>
           {(()=>{const used=tokensUsed(`${selT.tpl.subject||""}\n${selT.tpl.body||""}`);return used.length===0
-            ? <div style={{fontSize:11,color:"#9a9ea7",fontFamily:SANS}}>No merge fields used.</div>
-            : <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>{used.map(tok=>{const val=vals[tok];const known=val!=null;const missing=known&&/^\[.*\]$/.test(String(val));return <div key={tok} style={{fontSize:11,fontFamily:SANS,display:"flex",gap:6,alignItems:"baseline"}}><code style={{color:"var(--accent)",fontSize:10.5}}>{`{{${tok}}}`}</code><span style={{color:!known?"#b3392c":missing?"#9a6700":"#23262d"}}>{!known?"(unknown field)":val}</span></div>;})}</div>;})()}
+            ? <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:SANS}}>No merge fields used.</div>
+            : <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>{used.map(tok=>{const val=vals[tok];const known=val!=null;const missing=known&&/^\[.*\]$/.test(String(val));return <div key={tok} style={{fontSize:11,fontFamily:SANS,display:"flex",gap:6,alignItems:"baseline"}}><code style={{color:"var(--accent)",fontSize:10.5}}>{`{{${tok}}}`}</code><span style={{color:!known?"#b3392c":missing?"#9a6700":"var(--ink)"}}>{!known?"(unknown field)":val}</span></div>;})}</div>;})()}
           <div style={{marginBottom:12}}>
             <span style={lbl}>Common fill-ins</span>
             {inp(row.sellerName||"",v=>patch(row.id,{sellerName:v}),"Seller name(s)",undefined,{fontSize:11})}
             <div style={{height:5}}/>
             {inp(row.earnestAmount||"",v=>patch(row.id,{earnestAmount:v}),"Earnest amount",undefined,{fontSize:11})}
           </div>
-          <div style={{fontSize:10.5,color:"#9a9ea7",fontFamily:SANS,marginTop:6,lineHeight:1.5}}>
+          <div style={{fontSize:10.5,color:"var(--ink-3)",fontFamily:SANS,marginTop:6,lineHeight:1.5}}>
             Most fields pull from the transaction's detail panel and date columns. Anything in [brackets] is missing a value — fill it in the row (or above). You can also edit the draft before copying. Manage templates in Settings → Email Templates.
           </div>
           </>}
         </div>
         <div style={{padding:"16px 18px",display:"flex",flexDirection:"column",minWidth:0}}>
-          <div style={{background:"#fff",border:"1px solid #d8d4c8",borderRadius:8,overflow:"hidden",flex:1,minHeight:0}}>
-            <div style={{borderBottom:"1px solid #e3e0d6",padding:"10px 14px",fontFamily:SANS,fontSize:12}}>
-              <div style={{marginBottom:4}}><strong style={{color:"#8a6d1f"}}>To:</strong> <span style={{color:mail.to.length?"#23262d":"#c0392b"}}>{mail.to.length?mail.to.join(", "):"(add recipient emails on the left)"}</span></div>
+          <div style={{background:"#fff",border:"1px solid var(--line-2)",borderRadius:8,overflow:"hidden",flex:1,minHeight:0}}>
+            <div style={{borderBottom:"1px solid var(--line)",padding:"10px 14px",fontFamily:SANS,fontSize:12}}>
+              <div style={{marginBottom:4}}><strong style={{color:"#8a6d1f"}}>To:</strong> <span style={{color:mail.to.length?"var(--ink)":"#c0392b"}}>{mail.to.length?mail.to.join(", "):"(add recipient emails on the left)"}</span></div>
               <div style={{marginBottom:4}}><strong style={{color:"#8a6d1f"}}>Cc:</strong> {mail.cc.join(", ")||"\u2014"}</div>
               <div><strong style={{color:"#8a6d1f"}}>Subject:</strong> {mail.subject}</div>
             </div>
-            <pre style={{margin:0,padding:"14px 16px",fontFamily:SANS,fontSize:12.5,lineHeight:1.5,color:"#23262d",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:420,overflow:"auto"}}>{mail.body}</pre>
+            <pre style={{margin:0,padding:"14px 16px",fontFamily:SANS,fontSize:12.5,lineHeight:1.5,color:"var(--ink)",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:420,overflow:"auto"}}>{mail.body}</pre>
           </div>
           <div style={{display:"flex",gap:8,marginTop:12}}>
             <button onClick={copy} style={{...btnPrimary,background:copied?"#0f7a52":"var(--accent)",borderColor:copied?"#0f7a52":"var(--accent)"}}>{copied?"Copied \u2713":"Copy email"}</button>
@@ -1201,7 +1255,7 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
     </div>
 
     {tab==="escrow"&&<div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:18}}><Card l="Pipeline Volume" v={fmtS(eTot.vol)}/><Card l="Gross Commission" v={fmt(eTot.gross)}/><Card l="Agent Commission" v={fmt(eTot.agent)} accent="#0f7a52"/></div>
+      <div className="hb-grid-3" style={{marginBottom:18}}><Card l="Pipeline Volume" v={fmtS(eTot.vol)}/><Card l="Gross Commission" v={fmt(eTot.gross)}/><Card l="Agent Commission" v={fmt(eTot.agent)} accent="#0f7a52"/></div>
       <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{["All",...PSTAT].map(s=><button key={s} onClick={()=>setEFilter(s)} style={chip(eFilter===s)}>{s}</button>)}</div>
         <button onClick={()=>setReport("escrow")} style={{...btnGhost,marginLeft:"auto",borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button>
@@ -1222,13 +1276,13 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
           <th onClick={()=>eTS("gross")} style={{...thS,minWidth:90,textAlign:"right",cursor:"pointer"}}>Gross Comm{eArrow("gross")}</th>
           <th onClick={()=>eTS("agentComm")} style={{...thS,minWidth:90,textAlign:"right",cursor:"pointer"}}>Agent Comm{eArrow("agentComm")}</th>
           <th onClick={()=>eTS("status")} style={{...thS,minWidth:120,cursor:"pointer"}}>Status{eArrow("status")}</th>
-          {CONTINGENCIES.map(c=><th key={c.key} onClick={()=>eTS(c.key)} style={{...thS,minWidth:120,borderLeft:"1px solid #cdc9bd",color:CONTINGENCY_COLORS[c.key],cursor:"pointer"}}>{c.label}{eArrow(c.key)}</th>)}
+          {CONTINGENCIES.map(c=><th key={c.key} onClick={()=>eTS(c.key)} style={{...thS,minWidth:120,borderLeft:"1px solid var(--line-2)",color:CONTINGENCY_COLORS[c.key],cursor:"pointer"}}>{c.label}{eArrow(c.key)}</th>)}
           <th style={{...thS,minWidth:70}}></th>
         </tr></thead>
-        <tbody>{sortedE.map(row=>{const sc=statusColors[row.status]||{bg:"#eee",text:"#555"};const isEd=eEdit===row.id;const exp=eExpand.has(row.id);return <Fragment key={row.id}><tr style={{background:isEd?"#f3f1ea":"transparent"}}>
-          <td style={tdS({fontWeight:600,position:"sticky",left:0,zIndex:1,background:isEd?"#f3f1ea":"#ffffff",borderRight:"1px solid #cdc9bd",whiteSpace:"nowrap"})}>
+        <tbody>{sortedE.map(row=>{const sc=statusColors[row.status]||{bg:"#eee",text:"#555"};const isEd=eEdit===row.id;const exp=eExpand.has(row.id);return <Fragment key={row.id}><tr style={{background:isEd?"var(--surface-3)":"transparent"}}>
+          <td style={tdS({fontWeight:600,position:"sticky",left:0,zIndex:1,background:isEd?"var(--surface-3)":"var(--surface)",borderRight:"1px solid var(--line-2)",whiteSpace:"nowrap"})}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <button onClick={()=>toggleExpand(row.id)} title={exp?"Collapse details":"Expand details"} style={{width:18,height:18,flexShrink:0,border:"1px solid #cdc9bd",borderRadius:3,background:exp?"var(--accent)":"#fff",color:exp?"#fff":"#5b606b",cursor:"pointer",fontSize:10,lineHeight:1,padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{exp?"▾":"▸"}</button>
+              <button onClick={()=>toggleExpand(row.id)} title={exp?"Collapse details":"Expand details"} style={{width:18,height:18,flexShrink:0,border:"1px solid var(--line-2)",borderRadius:3,background:exp?"var(--accent)":"#fff",color:exp?"#fff":"var(--ink-2)",cursor:"pointer",fontSize:10,lineHeight:1,padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{exp?"▾":"▸"}</button>
               {isEd?inp(eED.address||"",v=>setEED(p=>({...p,address:v})),"Address"):<span>{row.address}</span>}
             </div>
           </td>
@@ -1237,16 +1291,16 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
           <td style={tdS({textAlign:"right"})}>{isEd?inp(eED.gross??row.gross,v=>setEED(p=>({...p,gross:+v||0,commPct:p.price?(+(((+v||0)/(+p.price||1)*100).toFixed(2))):p.commPct})),"","number"):fmt(row.gross)}</td>
           <td style={tdS({textAlign:"right"})}>{isEd?inp(eED.agentComm??row.agentComm,v=>setEED(p=>({...p,agentComm:+v||0})),"","number"):fmt(row.agentComm)}</td>
           <td style={tdS()}>{isEd?sel(eED.status||row.status,v=>setEED(p=>({...p,status:v})),PSTAT):<Pill color={sc}>{row.status}</Pill>}</td>
-          {CONTINGENCIES.map(c=>{const dn=!!row.done?.[c.key];return <td key={c.key} style={tdS({borderLeft:"1px solid #e3e0d6",padding:"4px 5px"})}>
+          {CONTINGENCIES.map(c=>{const dn=!!row.done?.[c.key];return <td key={c.key} style={tdS({borderLeft:"1px solid var(--line)",padding:"4px 5px"})}>
             <div style={{display:"flex",alignItems:"center",gap:4}}>
-              <button onClick={()=>eDone(row.id,c.key,!dn)} title={dn?"Resolved — click to reopen":"Mark resolved"} style={{width:16,height:16,flexShrink:0,borderRadius:3,border:`1px solid ${dn?"#0f7a52":"#cdc9bd"}`,background:dn?"#0f7a52":"#fff",color:"#fff",fontSize:10,lineHeight:1,cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{dn?"✓":""}</button>
+              <button onClick={()=>eDone(row.id,c.key,!dn)} title={dn?"Resolved — click to reopen":"Mark resolved"} style={{width:16,height:16,flexShrink:0,borderRadius:3,border:`1px solid ${dn?"#0f7a52":"var(--line-2)"}`,background:dn?"#0f7a52":"#fff",color:"#fff",fontSize:10,lineHeight:1,cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>{dn?"✓":""}</button>
               <input type="date" value={row[c.key]||""} onChange={e=>eDate(row.id,c.key,e.target.value)}
-                style={{flex:1,minWidth:0,fontSize:11,padding:"3px 4px",border:`1px solid ${dn?"#0f7a52":"#e3e0d6"}`,borderRadius:3,background:dn?"#eef6f0":(row[c.key]?"#ffffff":"#faf8f3"),color:dn?"#0f7a52":"#23262d",textDecoration:dn?"line-through":"none",fontFamily:SANS,boxSizing:"border-box"}}/>
+                style={{flex:1,minWidth:0,fontSize:11,padding:"3px 4px",border:`1px solid ${dn?"#0f7a52":"var(--line)"}`,borderRadius:3,background:dn?"#eef6f0":(row[c.key]?"var(--surface)":"#faf8f3"),color:dn?"#0f7a52":"var(--ink)",textDecoration:dn?"line-through":"none",fontFamily:SANS,boxSizing:"border-box"}}/>
             </div>
           </td>;})}
           <td style={tdS({whiteSpace:"nowrap"})}>{isEd?<div style={{display:"flex",gap:4}}><button onClick={eSave} style={{...btnPrimary,fontSize:10,padding:"3px 7px"}}>Save</button><button onClick={()=>setEEdit(null)} style={{...btnGhost,fontSize:10,padding:"3px 6px"}}>×</button></div>:<div style={{display:"flex",gap:4}}><button onClick={()=>{setEEdit(row.id);setEED({...row,commPct:(row.commPct!=null&&row.commPct!=="")?row.commPct:(row.price>0&&row.gross?+((row.gross/row.price*100).toFixed(2)):"")});}} style={{...btnGhost,fontSize:10,padding:"3px 7px"}}>Edit</button><button onClick={()=>eDel(row.id)} style={{...btnGhost,fontSize:10,padding:"3px 6px",color:"#b3392c"}}>×</button></div>}</td>
         </tr>
-        {exp&&<tr><td colSpan={6+CONTINGENCIES.length+1} style={{padding:0,background:"#faf8f3",borderBottom:"2px solid #cdc9bd"}}>
+        {exp&&<tr><td colSpan={6+CONTINGENCIES.length+1} style={{padding:0,background:"#faf8f3",borderBottom:"2px solid var(--line-2)"}}>
           <div style={{position:"sticky",left:0,width:"min(960px,90vw)",padding:"14px 16px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10,flexWrap:"wrap"}}>
               <div style={{fontFamily:SERIF,fontSize:13,fontWeight:700,fontVariant:"small-caps",letterSpacing:"0.03em"}}>Transaction Details — {row.address}</div>
@@ -1257,15 +1311,15 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,flexWrap:"wrap"}}>
               <span style={{fontSize:11,fontWeight:700,fontFamily:SANS,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.06em"}}>Commission Structure</span>
-              {["In House","Out of House"].map(t=><button key={t} onClick={()=>eDate(row.id,"commType",row.commType===t?"":t)} style={{fontSize:11,padding:"4px 11px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:row.commType===t?700:500,background:row.commType===t?"var(--accent)":"#fff",color:row.commType===t?"#fff":"#5b606b",borderColor:row.commType===t?"var(--accent)":"#cdc9bd"}}>{t}</button>)}
-              {row.commType?(()=>{const c=calcCommission(row.gross,row.commType,row.price,0,comm);return <span style={{fontSize:11,fontFamily:SANS,color:"#6a6f7a"}}>Est. agent net (pre-cap): <strong style={{color:"#0f7a52"}}>{fmt(c.agentNet)}</strong> · audit −{fmt(c.audit)}{c.inhouse?` · in-house −${c.inhouse}`:""} · see Commissions tab for cap-aware total</span>;})():<span style={{fontSize:11,fontFamily:SANS,color:"#9a9ea7"}}>Tag this deal to auto-compute the split.</span>}
+              {["In House","Out of House"].map(t=><button key={t} onClick={()=>eDate(row.id,"commType",row.commType===t?"":t)} style={{fontSize:11,padding:"4px 11px",borderRadius:4,border:"1px solid",cursor:"pointer",fontFamily:SANS,fontWeight:row.commType===t?700:500,background:row.commType===t?"var(--accent)":"#fff",color:row.commType===t?"#fff":"var(--ink-2)",borderColor:row.commType===t?"var(--accent)":"var(--line-2)"}}>{t}</button>)}
+              {row.commType?(()=>{const c=calcCommission(row.gross,row.commType,row.price,0,comm);return <span style={{fontSize:11,fontFamily:SANS,color:"var(--ink-2)"}}>Est. agent net (pre-cap): <strong style={{color:"#0f7a52"}}>{fmt(c.agentNet)}</strong> · audit −{fmt(c.audit)}{c.inhouse?` · in-house −${c.inhouse}`:""} · see Commissions tab for cap-aware total</span>;})():<span style={{fontSize:11,fontFamily:SANS,color:"var(--ink-3)"}}>Tag this deal to auto-compute the split.</span>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"14px 18px"}}>
               {ESCROW_DETAILS.map(g=><div key={g.group}>
-                <div style={{fontSize:10,fontWeight:700,fontFamily:SANS,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6,borderBottom:"1px solid #e3e0d6",paddingBottom:3}}>{g.group}</div>
+                <div style={{fontSize:10,fontWeight:700,fontFamily:SANS,color:"var(--accent)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6,borderBottom:"1px solid var(--line)",paddingBottom:3}}>{g.group}</div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {g.fields.map(([k,label])=>{const linkable=!!LINK_FIELDS[k]&&contacts.length>0;const fieldInput=<input value={row[k]||""} onChange={e=>eDate(row.id,k,e.target.value)} style={{width:"100%",fontSize:12,padding:"5px 7px",border:"1px solid #cdc9bd",borderRadius:4,background:"#fff",color:"#23262d",fontFamily:SANS,boxSizing:"border-box"}}/>;return <div key={k}>
-                    <label style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,display:"block",marginBottom:1}}>{label}</label>
+                  {g.fields.map(([k,label])=>{const linkable=!!LINK_FIELDS[k]&&contacts.length>0;const fieldInput=<input value={row[k]||""} onChange={e=>eDate(row.id,k,e.target.value)} style={{width:"100%",fontSize:12,padding:"5px 7px",border:"1px solid var(--line-2)",borderRadius:4,background:"#fff",color:"var(--ink)",fontFamily:SANS,boxSizing:"border-box"}}/>;return <div key={k}>
+                    <label style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,display:"block",marginBottom:1}}>{label}</label>
                     {linkable
                       ? <div style={{display:"flex",gap:4,alignItems:"stretch"}}>
                           <div style={{flex:1,minWidth:0}}>{fieldInput}</div>
@@ -1281,8 +1335,8 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
           </div>
         </td></tr>}
         </Fragment>;})}</tbody>
-        <tfoot><tr style={{borderTop:"2px solid #23262d",background:"#efece4"}}>
-          <td style={tdS({fontWeight:700,position:"sticky",left:0,background:"#efece4"})}>Totals ({fE.length})</td>
+        <tfoot><tr style={{borderTop:"2px solid var(--ink)",background:"var(--surface-3)"}}>
+          <td style={tdS({fontWeight:700,position:"sticky",left:0,background:"var(--surface-3)"})}>Totals ({fE.length})</td>
           <td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(fE.reduce((s,r)=>s+r.price,0))}</td>
           <td style={tdS()}></td>
           <td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(fE.reduce((s,r)=>s+(r.gross||0),0))}</td>
@@ -1329,7 +1383,7 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
 
     {tab==="stats"&&<div>
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><button onClick={()=>setReport("stats")} style={{...btnGhost,borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button></div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:22}}>
+      <div className="hb-grid-4" style={{marginBottom:22}}>
         <Card l="All-Time Volume" v={fmtS(yearly.reduce((s,r)=>s+r.vol,0))}/><Card l="All-Time Transactions" v={yearly.reduce((s,r)=>s+r.tx,0).toString()}/><Card l="All-Time Agent Comm" v={fmt(yearly.reduce((s,r)=>s+r.agent,0))} accent="#0f7a52"/><Card l="Best Year (Comm)" v={yearly.reduce((a,b)=>a.agent>b.agent?a:b,{year:"—",agent:0}).year.toString()} accent="var(--accent)"/>
       </div>
       <div style={{overflowX:"auto",marginBottom:24}}><table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -1345,11 +1399,11 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><button onClick={()=>setReport("trends")} style={{...btnGhost,borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button></div>
       <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{[["overview","Overview"],["commissions","Commissions"],["volume","Volume"],["zips","By Zip Code"],["sources","Lead Sources"],["monthly","Monthly Activity"]].map(([k,l])=><button key={k} onClick={()=>setTv(k)} style={chip(tv===k)}>{l}</button>)}</div>
       {tv==="overview"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}><Section title="Transaction count by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx,f:String(r.tx)}))} color="var(--accent)" h={95}/></Section><Section title="Volume by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color="#0891b2" h={95}/></Section></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}><Section title="Agent commission trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.agent}))}]} h={130}/></Section><Section title="Listings vs. purchases"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.list}))},{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.buy}))}]} h={110}/><div style={{display:"flex",gap:12,marginTop:6}}>{[["Sell side","var(--accent)"],["Buy side","#0891b2"]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:c}}></span>{l}</span>)}</div></Section></div>
+        <div className="hb-grid-2" style={{marginBottom:14}}><Section title="Transaction count by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx,f:String(r.tx)}))} color="var(--accent)" h={95}/></Section><Section title="Volume by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color="#0891b2" h={95}/></Section></div>
+        <div className="hb-grid-2" style={{}}><Section title="Agent commission trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.agent}))}]} h={130}/></Section><Section title="Listings vs. purchases"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.list}))},{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.buy}))}]} h={110}/><div style={{display:"flex",gap:12,marginTop:6}}>{[["Sell side","var(--accent)"],["Buy side","#0891b2"]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:c}}></span>{l}</span>)}</div></Section></div>
       </div>}
       {tv==="commissions"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}><Card l="Total Agent Comm" v={fmt(yearly.reduce((s,r)=>s+r.agent,0))} accent="#0f7a52"/><Card l="Total Gross Comm" v={fmt(yearly.reduce((s,r)=>s+r.gross,0))}/><Card l="Avg Agent / Transaction" v={fmt(Math.round(yearly.reduce((s,r)=>s+r.agent,0)/Math.max(yearly.reduce((s,r)=>s+r.tx,0),1)))}/></div>
+        <div className="hb-grid-3" style={{marginBottom:14}}><Card l="Total Agent Comm" v={fmt(yearly.reduce((s,r)=>s+r.agent,0))} accent="#0f7a52"/><Card l="Total Gross Comm" v={fmt(yearly.reduce((s,r)=>s+r.gross,0))}/><Card l="Avg Agent / Transaction" v={fmt(Math.round(yearly.reduce((s,r)=>s+r.agent,0)/Math.max(yearly.reduce((s,r)=>s+r.tx,0),1)))}/></div>
         <Section title="Agent commission by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.agent,f:fmtS(r.agent)}))} color="#0f7a52" h={110}/></Section>
         <Section title="Gross commission by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.gross,f:fmtS(r.gross)}))} color="var(--accent)" h={110}/></Section>
         <Section title="Commission split by year">
@@ -1363,16 +1417,16 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
       </div>}
       {tv==="volume"&&<div><Section title="Volume trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))}]} h={160}/></Section><Section title="Average sale price by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx>0?Math.round(r.vol/r.tx):0}))} color="#d97706" h={100}/></Section></div>}
       {tv==="zips"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}><Card l="Unique Zip Codes" v={zipSt.length.toString()}/><Card l="Top Zip" v={zipSt[0]?.zip||"—"} accent="var(--accent)"/><Card l="Top Zip Volume" v={fmtS(zipSt[0]?.vol||0)}/></div>
+        <div className="hb-grid-3" style={{marginBottom:14}}><Card l="Unique Zip Codes" v={zipSt.length.toString()}/><Card l="Top Zip" v={zipSt[0]?.zip||"—"} accent="var(--accent)"/><Card l="Top Zip Volume" v={fmtS(zipSt[0]?.vol||0)}/></div>
         <Section title="Transaction count by zip code (top 12)"><Bar data={zipSt.slice(0,12).map(r=>({l:r.zip,v:r.count,f:String(r.count)}))} color="#7c3aed" h={100}/></Section>
         <Section title="All zip code breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Zip","Transactions","Total Volume","Agent Comm","Avg Sale Price"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{zipSt.map(z=><tr key={z.zip} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({fontWeight:600,color:"var(--accent)"})}>{z.zip}</td><td style={tdS()}>{z.count}</td><td style={tdS()}>{fmtS(z.vol)}</td><td style={tdS({color:"#0f7a52"})}>{fmt(z.agent)}</td><td style={tdS()}>{fmt(Math.round(z.vol/z.count))}</td></tr>)}</tbody></table></Section>
       </div>}
       {tv==="sources"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}><Section title="Transaction share by source"><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><Donut segs={srcSt.map(s=>({v:s.count}))} size={130}/><div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:10}}>{srcSt.map((s,i)=><span key={s.src} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length]}}></span>{s.src||"Unknown"} ({s.count})</span>)}</div></div></Section><Section title="Agent commission by source"><Bar data={srcSt.slice(0,6).map(s=>({l:s.src.split(" ")[0].slice(0,6),v:s.agent}))} color="#db2777" h={100}/></Section></div>
+        <div className="hb-grid-2" style={{marginBottom:14}}><Section title="Transaction share by source"><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><Donut segs={srcSt.map(s=>({v:s.count}))} size={130}/><div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:10}}>{srcSt.map((s,i)=><span key={s.src} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length]}}></span>{s.src||"Unknown"} ({s.count})</span>)}</div></div></Section><Section title="Agent commission by source"><Bar data={srcSt.slice(0,6).map(s=>({l:s.src.split(" ")[0].slice(0,6),v:s.agent}))} color="#db2777" h={100}/></Section></div>
         <Section title="Full lead source breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Source","Transactions","Agent Comm","Avg Comm/Deal"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{srcSt.map((s,i)=><tr key={s.src} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({display:"flex",alignItems:"center",gap:6})}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length],flexShrink:0}}></span><span style={{fontWeight:500}}>{s.src||"Unknown"}</span></td><td style={tdS()}>{s.count}</td><td style={tdS({color:"#0f7a52"})}>{fmt(s.agent)}</td><td style={tdS()}>{fmt(Math.round(s.agent/s.count))}</td></tr>)}</tbody></table></Section>
       </div>}
       {tv==="monthly"&&<div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}>{(()=>{const best=monthly.reduce((a,b)=>b.agent>a.agent?b:a,{l:"—",agent:0});const busy=monthly.reduce((a,b)=>b.count>a.count?b:a,{l:"—",count:0});return[<Card key="1" l="Best Month (Comm)" v={best.l} accent="#0f7a52"/>,<Card key="2" l="Busiest Month (Volume)" v={busy.l} accent="var(--accent)"/>,<Card key="3" l="Avg Trans/Month" v={(hist.length/12).toFixed(1)}/>];})()}</div>
+        <div className="hb-grid-3" style={{marginBottom:14}}>{(()=>{const best=monthly.reduce((a,b)=>b.agent>a.agent?b:a,{l:"—",agent:0});const busy=monthly.reduce((a,b)=>b.count>a.count?b:a,{l:"—",count:0});return[<Card key="1" l="Best Month (Comm)" v={best.l} accent="#0f7a52"/>,<Card key="2" l="Busiest Month (Volume)" v={busy.l} accent="var(--accent)"/>,<Card key="3" l="Avg Trans/Month" v={(hist.length/12).toFixed(1)}/>];})()}</div>
         <Section title="Transaction count by month (all years)"><Bar data={monthly.map(m=>({l:m.l,v:m.count,f:String(m.count)}))} color="var(--accent)" h={100}/></Section>
         <Section title="Agent commission by month (all years)"><Bar data={monthly.map(m=>({l:m.l,v:m.agent}))} color="#0f7a52" h={100}/></Section>
         <Section title="Volume by month (all years)"><Bar data={monthly.map(m=>({l:m.l,v:m.vol}))} color="#0891b2" h={100}/></Section>
@@ -1423,40 +1477,40 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
   const setOverride=(src,id,v)=>{ if(src==="hist") saveHist(hist.map(r=>r.id===id?{...r,agentNetOverride:v}:r)); else saveEscrow(escrow.map(r=>r.id===id?{...r,agentNetOverride:v}:r)); };
   const setBrokOverride=(src,id,v)=>{ if(src==="hist") saveHist(hist.map(r=>r.id===id?{...r,brokerageOverride:v}:r)); else saveEscrow(escrow.map(r=>r.id===id?{...r,brokerageOverride:v}:r)); };
 
-  const th={textAlign:"left",padding:"6px 8px",fontSize:9.5,color:"#6a6f7a",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"2px solid #23262d",background:"#efece4",fontFamily:SANS,whiteSpace:"nowrap"};
+  const th={textAlign:"left",padding:"6px 8px",fontSize:9.5,color:"var(--ink-2)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:"1px solid var(--rule)",background:"var(--surface-3)",fontFamily:SANS,whiteSpace:"nowrap"};
   const td=(e={})=>({padding:"6px 8px",fontFamily:SANS,fontSize:11.5,borderBottom:"1px solid #e7e4dc",fontVariantNumeric:"tabular-nums",...e});
 
   return <div>
     <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-      <select value={year} onChange={e=>setYear(+e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid #cdc9bd",background:"#fff",color:"#23262d",fontFamily:SANS}}>{years.map(y=><option key={y}>{y}</option>)}</select>
-      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontFamily:SANS,color:"#5b606b",cursor:"pointer"}}><input type="checkbox" checked={includePending} onChange={e=>setIncludePending(e.target.checked)} style={{margin:0,accentColor:"var(--accent)"}}/>Include pending (projected)</label>
+      <select value={year} onChange={e=>setYear(+e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line-2)",background:"#fff",color:"var(--ink)",fontFamily:SANS}}>{years.map(y=><option key={y}>{y}</option>)}</select>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontFamily:SANS,color:"var(--ink-2)",cursor:"pointer"}}><input type="checkbox" checked={includePending} onChange={e=>setIncludePending(e.target.checked)} style={{margin:0,accentColor:"var(--accent)"}}/>Include pending (projected)</label>
     </div>
 
     {/* cap progress */}
-    <div style={{background:"#fdfcf9",border:"1px solid #cdc9bd",padding:16,marginBottom:16}}>
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--line-2)",padding:16,marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,flexWrap:"wrap",gap:8}}>
         <div style={{fontFamily:SERIF,fontSize:14,fontWeight:700,fontVariant:"small-caps",letterSpacing:"0.03em"}}>Brokerage Cap — {year}</div>
-        <div style={{fontSize:12,fontFamily:SANS,color:"#6a6f7a"}}>30% collections toward {fmt(comm.cap)} cap</div>
+        <div style={{fontSize:12,fontFamily:SANS,color:"var(--ink-2)"}}>30% collections toward {fmt(comm.cap)} cap</div>
       </div>
-      <div style={{position:"relative",height:22,background:"#edeae1",borderRadius:4,overflow:"hidden",border:"1px solid #cdc9bd"}}>
+      <div style={{position:"relative",height:22,background:"#edeae1",borderRadius:4,overflow:"hidden",border:"1px solid var(--line-2)"}}>
         <div style={{position:"absolute",inset:0,width:`${projPct}%`,background:"#cdd6ee"}}/>
         <div style={{position:"absolute",top:0,bottom:0,left:0,width:`${capPct}%`,background:"var(--accent)"}}/>
       </div>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:11,fontFamily:SANS,color:"#6a6f7a"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:11,fontFamily:SANS,color:"var(--ink-2)"}}>
         <span>Realized (closed): <strong style={{color:"var(--accent)"}}>{fmt(realizedCap)}</strong></span>
-        {includePending&&<span>Projected w/ pipeline: <strong style={{color:"#5b606b"}}>{fmt(projectedCap)}</strong></span>}
+        {includePending&&<span>Projected w/ pipeline: <strong style={{color:"var(--ink-2)"}}>{fmt(projectedCap)}</strong></span>}
         <span>{realizedCap>=comm.cap?"✓ Cap met":`${fmt(comm.cap-realizedCap)} to cap`}</span>
       </div>
       {capHitRow&&<div style={{fontSize:11,fontFamily:SANS,color:"#0f7a52",marginTop:6}}>Cap {capHitRow.closed?"met":"projected to be met"} at <strong>{capHitRow.address}</strong> ({capHitRow.label}). Deals after this are split 30%→12%.</div>}
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+    <div className="hb-grid-3" style={{marginBottom:16}}>
       <Card l="Deals in plan" v={String(seq.length)}/>
       <Card l="Agent Net (total)" v={fmt(totalNet)} accent="#0f7a52"/>
       <Card l="To Brokerage (split)" v={fmt(totalBrok)}/>
     </div>
 
-    {seq.length===0?<div style={{fontSize:13,color:"#6a6f7a",fontFamily:SANS,padding:"10px 0"}}>No tagged {year} deals yet. Tag deals as In House / Out of House (below, in the pipeline detail panel, or in Sales History) to populate the cap tracker.</div>:
+    {seq.length===0?<div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,padding:"10px 0"}}>No tagged {year} deals yet. Tag deals as In House / Out of House (below, in the pipeline detail panel, or in Sales History) to populate the cap tracker.</div>:
     <div style={{overflowX:"auto",border:"1px solid #b4afa1",marginBottom:16}}><table style={{borderCollapse:"collapse",minWidth:"100%"}}>
       <thead><tr>
         <th style={th}>Close</th><th style={th}>Address</th><th style={th}>Stage</th><th style={th}>Type</th>
@@ -1468,7 +1522,7 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
         <td style={td({fontWeight:600,whiteSpace:"nowrap"})}>{d.address}</td>
         <td style={td()}><span style={{fontSize:10,padding:"1px 6px",borderRadius:3,background:d.closed?"#dcfce7":"#fef9c3",color:d.closed?"#166534":"#854d0e"}}>{d.closed?"Closed":"Pending"}</span></td>
         <td style={td({whiteSpace:"nowrap"})}>
-          <select value={d.commType} onChange={e=>setType(d.src,d.id,e.target.value)} style={{fontSize:11,padding:"3px 5px",border:"1px solid #cdc9bd",borderRadius:4,background:"#fff",color:"#23262d",fontFamily:SANS}}>
+          <select value={d.commType} onChange={e=>setType(d.src,d.id,e.target.value)} style={{fontSize:11,padding:"3px 5px",border:"1px solid var(--line-2)",borderRadius:4,background:"#fff",color:"var(--ink)",fontFamily:SANS}}>
             <option value="In House">In House</option>
             <option value="Out of House">Out of House</option>
             <option value="">— Untag —</option>
@@ -1479,17 +1533,17 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
         <td style={td({textAlign:"right"})}>{fmt(d.c.base)}</td>
         <td style={td({textAlign:"right"})} title={d.c.brokOverridden?`Manual brokerage — ${fmt(d.c.capContribution)} counts toward cap`:`Auto · 30%: ${fmt(d.c.preTake)} · 12%: ${fmt(d.c.postTake)}`}>
           <input value={d.brokOv!=null&&d.brokOv!==""?d.brokOv:""} placeholder={Math.round(d.c.brokerage)} onChange={e=>setBrokOverride(d.src,d.id,e.target.value)}
-            style={{width:84,textAlign:"right",fontSize:11.5,padding:"3px 5px",border:d.c.brokOverridden?"1px solid #d97706":"1px solid #e3e0d6",borderRadius:3,background:d.c.brokOverridden?"#fffaf0":"#fff",color:d.c.brokOverridden?"#9a6700":"#b3392c",fontWeight:600,fontFamily:SANS}}/>
+            style={{width:84,textAlign:"right",fontSize:11.5,padding:"3px 5px",border:d.c.brokOverridden?"1px solid #d97706":"1px solid var(--line)",borderRadius:3,background:d.c.brokOverridden?"#fffaf0":"#fff",color:d.c.brokOverridden?"#9a6700":"#b3392c",fontWeight:600,fontFamily:SANS}}/>
           {d.c.brokOverridden&&<button onClick={()=>setBrokOverride(d.src,d.id,"")} title="Revert to auto split" style={{...btnGhost,fontSize:9,padding:"1px 4px",marginLeft:3}}>↻</button>}
         </td>
         <td style={td({textAlign:"right"})}>
           <input value={d.override!=null&&d.override!==""?d.override:""} placeholder={Math.round(d.c.agentNet)} onChange={e=>setOverride(d.src,d.id,e.target.value)}
-            style={{width:88,textAlign:"right",fontSize:11.5,padding:"3px 5px",border:d.overridden?"1px solid #d97706":"1px solid #e3e0d6",borderRadius:3,background:d.overridden?"#fffaf0":"#fff",color:d.overridden?"#9a6700":"#0f7a52",fontWeight:600,fontFamily:SANS}}/>
+            style={{width:88,textAlign:"right",fontSize:11.5,padding:"3px 5px",border:d.overridden?"1px solid #d97706":"1px solid var(--line)",borderRadius:3,background:d.overridden?"#fffaf0":"#fff",color:d.overridden?"#9a6700":"#0f7a52",fontWeight:600,fontFamily:SANS}}/>
           {d.overridden&&<button onClick={()=>setOverride(d.src,d.id,"")} title="Revert to auto" style={{...btnGhost,fontSize:9,padding:"1px 4px",marginLeft:3}}>↻</button>}
         </td>
-        <td style={td({textAlign:"right",color:d.capAfter>=comm.cap?"#0f7a52":"#6a6f7a"})}>{fmt(d.capAfter)}</td>
+        <td style={td({textAlign:"right",color:d.capAfter>=comm.cap?"#0f7a52":"var(--ink-2)"})}>{fmt(d.capAfter)}</td>
       </tr>)}</tbody>
-      <tfoot><tr style={{borderTop:"2px solid #23262d",background:"#efece4"}}>
+      <tfoot><tr style={{borderTop:"2px solid var(--ink)",background:"var(--surface-3)"}}>
         <td style={td({fontWeight:700})} colSpan={4}>Totals ({seq.length})</td>
         <td style={td({fontWeight:700,textAlign:"right"})}>{fmt(seq.reduce((s,d)=>s+d.gross,0))}</td>
         <td style={td()}></td><td style={td({fontWeight:700,textAlign:"right"})}>{fmt(seq.reduce((s,d)=>s+d.c.base,0))}</td>
@@ -1498,13 +1552,13 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
       </tr></tfoot>
     </table></div>}
 
-    <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:16}}>Fees = {fmt(comm.auditFee)} audit {`+ in-house (${fmt(comm.inHouseLow)} ≤ ${fmtS(comm.inHouseThreshold)}, ${fmt(comm.inHouseHigh)} above)`}. Brokerage = {Math.round(comm.preCapRate*100)}% of base until the {fmt(comm.cap)} cap, then {Math.round(comm.postCapRate*100)}%. Edit the <strong>Brokerage</strong> figure to set the actual split for a deal — it drives the cap (counting toward the {fmt(comm.cap)} ceiling). Edit <strong>Agent Net</strong> to override take-home. ↻ reverts either to auto.</div>
+    <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:16}}>Fees = {fmt(comm.auditFee)} audit {`+ in-house (${fmt(comm.inHouseLow)} ≤ ${fmtS(comm.inHouseThreshold)}, ${fmt(comm.inHouseHigh)} above)`}. Brokerage = {Math.round(comm.preCapRate*100)}% of base until the {fmt(comm.cap)} cap, then {Math.round(comm.postCapRate*100)}%. Edit the <strong>Brokerage</strong> figure to set the actual split for a deal — it drives the cap (counting toward the {fmt(comm.cap)} ceiling). Edit <strong>Agent Net</strong> to override take-home. ↻ reverts either to auto.</div>
 
-    {untagged.length>0&&<div style={{background:"#fdfcf9",border:"1px solid #cdc9bd",padding:14}}>
+    {untagged.length>0&&<div style={{background:"var(--surface-2)",border:"1px solid var(--line-2)",padding:14}}>
       <div style={{fontFamily:SERIF,fontSize:13,fontWeight:700,fontVariant:"small-caps",letterSpacing:"0.03em",marginBottom:4}}>Untagged {year} deals ({untagged.length})</div>
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:10}}>These are excluded from the cap until you classify them.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:10}}>These are excluded from the cap until you classify them.</div>
       {untagged.map(d=><div key={d.src+d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid #e7e4dc"}}>
-        <span style={{flex:1,fontSize:12.5,fontFamily:SANS,fontWeight:600}}>{d.address} <span style={{color:"#9a9ea7",fontWeight:400}}>· {d.date} · {fmt(d.gross)}</span></span>
+        <span style={{flex:1,fontSize:12.5,fontFamily:SANS,fontWeight:600}}>{d.address} <span style={{color:"var(--ink-3)",fontWeight:400}}>· {d.date} · {fmt(d.gross)}</span></span>
         {COMM_TYPES.map(t=><button key={t} onClick={()=>setType(d.src,d.id,t)} style={{...btnGhost,fontSize:11,padding:"3px 9px"}}>{t}</button>)}
       </div>)}
     </div>}
@@ -1514,15 +1568,15 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
 // ──────────── Report frame (shared print shell) ────────────
 function ReportFrame({title,subtitle,profile,saveProfile,onClose,wide,children}) {
   const [brand,setBrand]=useState("luzecky");
-  const ACC="var(--accent)",INK="#23262d",MUT="#6a6f7a";
+  const ACC="var(--accent)",INK="var(--ink)",MUT="var(--ink-2)";
   const brandName=brand==="luzecky"?(profile.luzeckyName||"Luzecky Real Estate"):(profile.decaName||"Deca Realty");
   const tagline=brand==="luzecky"?(profile.luzeckyTagline||""):"";
   const setP=(k,v)=>saveProfile({...profile,[k]:v});
-  const ctrlBtn=(on)=>({fontSize:12,padding:"5px 12px",border:`1px solid ${on?ACC:"#cdc9bd"}`,background:on?ACC:"#fff",color:on?"#fff":"#5b606b",cursor:"pointer",fontFamily:SANS,fontWeight:on?600:500,borderRadius:4});
-  const fInp=(v,set,ph)=>(<input value={v||""} onChange={e=>set(e.target.value)} placeholder={ph} style={{padding:"5px 8px",fontSize:12,border:"1px solid #cdc9bd",borderRadius:4,fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
+  const ctrlBtn=(on)=>({fontSize:12,padding:"5px 12px",border:`1px solid ${on?ACC:"var(--line-2)"}`,background:on?ACC:"#fff",color:on?"#fff":"var(--ink-2)",cursor:"pointer",fontFamily:SANS,fontWeight:on?600:500,borderRadius:4});
+  const fInp=(v,set,ph)=>(<input value={v||""} onChange={e=>set(e.target.value)} placeholder={ph} style={{padding:"5px 8px",fontSize:12,border:"1px solid var(--line-2)",borderRadius:4,fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
   return ReactDOM.createPortal(<div className="cma-print-root" style={{position:"fixed",inset:0,zIndex:9999,background:"#e7e6e1",overflow:"auto"}}>
     <style>{`@media print{.no-print{display:none !important;}html,body{background:#fff !important;margin:0 !important;padding:0 !important;height:auto !important;}body > *:not(.cma-print-root){display:none !important;}.cma-print-root{position:static !important;inset:auto !important;height:auto !important;background:#fff !important;overflow:visible !important;z-index:auto !important;}.cma-print-root *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}.cma-sheet{box-shadow:none !important;margin:0 !important;width:auto !important;max-width:100% !important;padding:0 !important;}.cma-sheet table{page-break-inside:auto;}.cma-sheet tr{page-break-inside:avoid;}@page{size:letter;margin:0.5in;}}`}</style>
-    <div className="no-print" style={{position:"sticky",top:0,zIndex:2,background:"#fff",borderBottom:"1px solid #cdc9bd",padding:"10px 16px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+    <div className="no-print" style={{position:"sticky",top:0,zIndex:2,background:"#fff",borderBottom:"1px solid var(--line-2)",padding:"10px 16px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:MUT,fontFamily:SANS,fontWeight:600}}>Brand</span>
         <button onClick={()=>setBrand("luzecky")} style={ctrlBtn(brand==="luzecky")}>Luzecky</button>
         <button onClick={()=>setBrand("deca")} style={ctrlBtn(brand==="deca")}>Deca</button></div>
@@ -1531,7 +1585,7 @@ function ReportFrame({title,subtitle,profile,saveProfile,onClose,wide,children})
         <button onClick={onClose} style={ctrlBtn(false)}>Close</button>
       </div>
     </div>
-    <div className="no-print" style={{background:"#fff",borderBottom:"1px solid #e3e0d6",padding:"10px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,maxWidth:wide?1100:880,margin:"0 auto"}}>
+    <div className="no-print" style={{background:"#fff",borderBottom:"1px solid var(--line)",padding:"10px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,maxWidth:wide?1100:880,margin:"0 auto"}}>
       {fInp(profile.agentName,v=>setP("agentName",v),"Your name")}
       {fInp(profile.license,v=>setP("license",v),"License #")}
       {fInp(profile.phone,v=>setP("phone",v),"Phone")}
@@ -1560,7 +1614,7 @@ function ReportFrame({title,subtitle,profile,saveProfile,onClose,wide,children})
           <div style={{fontSize:11,color:MUT}}>{[profile.phone,profile.email].filter(Boolean).join("  ·  ")}</div>
           <div style={{fontSize:11,color:MUT,marginTop:2}}>{brandName}</div>
         </div>
-        <div style={{fontSize:9,color:"#9a9ea7",textAlign:"right",maxWidth:280,lineHeight:1.4}}>Prepared from internal production records. Figures are unaudited and for informational use.</div>
+        <div style={{fontSize:9,color:"var(--ink-3)",textAlign:"right",maxWidth:280,lineHeight:1.4}}>Prepared from internal production records. Figures are unaudited and for informational use.</div>
       </div>
     </div>
   </div>, document.body);
@@ -1568,8 +1622,8 @@ function ReportFrame({title,subtitle,profile,saveProfile,onClose,wide,children})
 
 // ──────────── My Sales PDF reports ────────────
 function SalesReport({type,hist,escrow,fH,fE,hYear,hSearch,eFilter,yearly,zipSt,srcSt,monthly,eTot,profile,saveProfile,onClose}) {
-  const ACC="var(--accent)",INK="#23262d",MUT="#6a6f7a",RULE="#d8d4c8",GREEN="#0f7a52";
-  const th={textAlign:"left",padding:"6px 8px",fontSize:9.5,color:MUT,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:`2px solid ${INK}`,background:"#efece4",fontFamily:SANS,whiteSpace:"nowrap"};
+  const ACC="var(--accent)",INK="var(--ink)",MUT="var(--ink-2)",RULE="var(--line-2)",GREEN="#0f7a52";
+  const th={textAlign:"left",padding:"6px 8px",fontSize:9.5,color:MUT,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:`2px solid ${INK}`,background:"var(--surface-3)",fontFamily:SANS,whiteSpace:"nowrap"};
   const td=(e={})=>({padding:"5px 8px",fontFamily:SANS,fontSize:11,borderBottom:`1px solid #e7e4dc`,fontVariantNumeric:"tabular-nums",...e});
   const secH=(t)=>(<div style={{fontSize:13,fontWeight:700,fontVariant:"small-caps",letterSpacing:"0.03em",borderBottom:`2px solid ${INK}`,paddingBottom:5,margin:"20px 0 10px"}}>{t}</div>);
   const Tiles=({items})=>(<div style={{display:"grid",gridTemplateColumns:`repeat(${items.length},1fr)`,border:`1px solid ${RULE}`,marginBottom:6}}>
@@ -1662,7 +1716,7 @@ function SalesReport({type,hist,escrow,fH,fE,hYear,hSearch,eFilter,yearly,zipSt,
       <Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color={ACC} h={100}/>
       {secH("Transactions by Year")}
       <Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx,f:String(r.tx)}))} color="#0891b2" h={90}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
+      <div className="hb-grid-2" style={{}}>
         <div>{secH("Top ZIP Codes")}
           <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th}>Zip</th><th style={{...th,textAlign:"right"}}>Deals</th><th style={{...th,textAlign:"right"}}>Volume</th></tr></thead>
           <tbody>{zipSt.slice(0,10).map(z=><tr key={z.zip}><td style={td({fontWeight:600})}>{z.zip}</td><td style={td({textAlign:"right"})}>{z.count}</td><td style={td({textAlign:"right"})}>{fmtS(z.vol)}</td></tr>)}</tbody></table>
@@ -1702,9 +1756,9 @@ function TransactionCalendar({escrow}) {
     : `${DOW[cursor.getDay()]}, ${MONTHS[cursor.getMonth()]} ${cursor.getDate()}, ${cursor.getFullYear()}`;
 
   const EvtChip=({e,full})=>(
-    <div title={`${e.addr} · ${e.label}${e.done?" · resolved":""}`} style={{display:"flex",alignItems:"center",gap:5,padding:"2px 5px",marginBottom:3,borderRadius:3,background:e.done?"#f1f4f1":"#fff",borderLeft:`3px solid ${e.done?"#9bb3a4":CONTINGENCY_COLORS[e.key]}`,border:"1px solid #e3e0d6",borderLeftWidth:3,fontFamily:SANS,fontSize:10.5,lineHeight:1.25,opacity:e.done?0.7:1}}>
+    <div title={`${e.addr} · ${e.label}${e.done?" · resolved":""}`} style={{display:"flex",alignItems:"center",gap:5,padding:"2px 5px",marginBottom:3,borderRadius:3,background:e.done?"#f1f4f1":"#fff",borderLeft:`3px solid ${e.done?"#9bb3a4":CONTINGENCY_COLORS[e.key]}`,border:"1px solid var(--line)",borderLeftWidth:3,fontFamily:SANS,fontSize:10.5,lineHeight:1.25,opacity:e.done?0.7:1}}>
       <span style={{flexShrink:0,fontSize:9,color:e.done?"#0f7a52":CONTINGENCY_COLORS[e.key]}}>{e.done?"✓":"●"}</span>
-      <span style={{fontWeight:600,color:"#23262d",textDecoration:e.done?"line-through":"none",whiteSpace:full?"normal":"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.addr}</span>
+      <span style={{fontWeight:600,color:"var(--ink)",textDecoration:e.done?"line-through":"none",whiteSpace:full?"normal":"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.addr}</span>
       <span style={{color:e.done?"#7c8a80":CONTINGENCY_COLORS[e.key],whiteSpace:"nowrap"}}>{e.short}</span>
     </div>
   );
@@ -1718,24 +1772,24 @@ function TransactionCalendar({escrow}) {
   const weekCells=useMemo(()=>{const s=startOfWeek(cursor);return Array.from({length:7},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return d;});},[cursor]);
 
   const navBtn={...btnGhost,padding:"5px 11px",fontSize:13};
-  const cellBase={border:"1px solid #e3e0d6",verticalAlign:"top",padding:0};
+  const cellBase={border:"1px solid var(--line)",verticalAlign:"top",padding:0};
 
   return <div>
     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}>
-      <div style={{display:"flex",border:"1px solid #cdc9bd",borderRadius:5,overflow:"hidden"}}>
-        {[["day","Day"],["week","Week"],["month","Month"]].map(([k,l])=><button key={k} onClick={()=>setView(k)} style={{fontSize:12,padding:"6px 14px",border:"none",cursor:"pointer",fontFamily:SANS,fontWeight:view===k?700:500,background:view===k?"var(--accent)":"#fff",color:view===k?"#fff":"#5b606b"}}>{l}</button>)}
+      <div style={{display:"flex",border:"1px solid var(--line-2)",borderRadius:5,overflow:"hidden"}}>
+        {[["day","Day"],["week","Week"],["month","Month"]].map(([k,l])=><button key={k} onClick={()=>setView(k)} style={{fontSize:12,padding:"6px 14px",border:"none",cursor:"pointer",fontFamily:SANS,fontWeight:view===k?700:500,background:view===k?"var(--accent)":"#fff",color:view===k?"#fff":"var(--ink-2)"}}>{l}</button>)}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <button onClick={()=>shift(-1)} style={navBtn}>‹</button>
         <button onClick={()=>setCursor(new Date())} style={navBtn}>Today</button>
         <button onClick={()=>shift(1)} style={navBtn}>›</button>
       </div>
-      <div style={{fontFamily:SERIF,fontSize:18,fontWeight:700,color:"#23262d",marginLeft:4}}>{title}</div>
-      <select value={txn} onChange={e=>setTxn(e.target.value)} title="Filter by transaction" style={{marginLeft:"auto",padding:"6px 10px",fontSize:12,borderRadius:5,border:"1px solid #cdc9bd",background:txn==="all"?"#fff":"#ece9fb",color:"#23262d",fontFamily:SANS,fontWeight:txn==="all"?400:600,maxWidth:200}}>
+      <div style={{fontFamily:SERIF,fontSize:18,fontWeight:700,color:"var(--ink)",marginLeft:4}}>{title}</div>
+      <select value={txn} onChange={e=>setTxn(e.target.value)} title="Filter by transaction" style={{marginLeft:"auto",padding:"6px 10px",fontSize:12,borderRadius:5,border:"1px solid var(--line-2)",background:txn==="all"?"#fff":"#ece9fb",color:"var(--ink)",fontFamily:SANS,fontWeight:txn==="all"?400:600,maxWidth:200}}>
         <option value="all">All transactions ({txnOptions.length})</option>
         {txnOptions.map(r=><option key={r.id} value={r.id}>{r.address}</option>)}
       </select>
-      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontFamily:SANS,color:"#5b606b",cursor:"pointer"}}>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,fontFamily:SANS,color:"var(--ink-2)",cursor:"pointer"}}>
         <input type="checkbox" checked={hideDone} onChange={e=>setHideDone(e.target.checked)} style={{margin:0,accentColor:"#0f7a52"}}/>Hide resolved
       </label>
     </div>
@@ -1743,45 +1797,45 @@ function TransactionCalendar({escrow}) {
     {/* contingency filter legend */}
     <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
       {CONTINGENCIES.map(c=>{const on=activeKeys.has(c.key);return <button key={c.key} onClick={()=>setActiveKeys(p=>{const n=new Set(p);n.has(c.key)?n.delete(c.key):n.add(c.key);return n;})}
-        style={{display:"flex",alignItems:"center",gap:5,fontSize:11,padding:"3px 9px",borderRadius:14,border:"1px solid",cursor:"pointer",fontFamily:SANS,background:on?"#fff":"#f0eee8",borderColor:on?CONTINGENCY_COLORS[c.key]:"#d8d4c8",color:on?"#23262d":"#a0a4ad"}}>
+        style={{display:"flex",alignItems:"center",gap:5,fontSize:11,padding:"3px 9px",borderRadius:14,border:"1px solid",cursor:"pointer",fontFamily:SANS,background:on?"#fff":"#f0eee8",borderColor:on?CONTINGENCY_COLORS[c.key]:"var(--line-2)",color:on?"var(--ink)":"#a0a4ad"}}>
         <span style={{width:8,height:8,borderRadius:"50%",background:on?CONTINGENCY_COLORS[c.key]:"#c5c2b8"}}/>{c.short}</button>;})}
     </div>
 
     {view==="month"&&<div style={{border:"1px solid #b4afa1"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-        {DOW.map(d=><div key={d} style={{...thS,textAlign:"center",borderLeft:"1px solid #e3e0d6"}}>{d}</div>)}
+        {DOW.map(d=><div key={d} style={{...thS,textAlign:"center",borderLeft:"1px solid var(--line)"}}>{d}</div>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
         {monthCells.map((d,i)=>{const inMonth=d.getMonth()===cursor.getMonth();const evs=evtsOn(d);const isToday=sameDay(d,today);
           return <div key={i} style={{...cellBase,minHeight:92,background:inMonth?"#fff":"#f6f4ee"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 6px"}}>
-              <span style={{fontFamily:SANS,fontSize:11,fontWeight:isToday?700:500,color:isToday?"#fff":inMonth?"#23262d":"#b0b4bd",background:isToday?"var(--accent)":"transparent",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</span>
+              <span style={{fontFamily:SANS,fontSize:11,fontWeight:isToday?700:500,color:isToday?"#fff":inMonth?"var(--ink)":"#b0b4bd",background:isToday?"var(--accent)":"transparent",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</span>
             </div>
-            <div style={{padding:"0 4px 4px"}}>{evs.slice(0,3).map((e,j)=><EvtChip key={j} e={e}/>)}{evs.length>3&&<div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,paddingLeft:2}}>+{evs.length-3} more</div>}</div>
+            <div style={{padding:"0 4px 4px"}}>{evs.slice(0,3).map((e,j)=><EvtChip key={j} e={e}/>)}{evs.length>3&&<div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,paddingLeft:2}}>+{evs.length-3} more</div>}</div>
           </div>;})}
       </div>
     </div>}
 
     {view==="week"&&<div style={{border:"1px solid #b4afa1",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
       {weekCells.map((d,i)=>{const evs=evtsOn(d);const isToday=sameDay(d,today);return <div key={i} style={{...cellBase,minHeight:240}}>
-        <div style={{textAlign:"center",padding:"6px 0",borderBottom:"1px solid #e3e0d6",background:isToday?"var(--accent)":"#efece4"}}>
-          <div style={{fontFamily:SANS,fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em",color:isToday?"#cfcbea":"#6a6f7a"}}>{DOW[d.getDay()]}</div>
-          <div style={{fontFamily:SERIF,fontSize:17,fontWeight:700,color:isToday?"#fff":"#23262d"}}>{d.getDate()}</div>
+        <div style={{textAlign:"center",padding:"6px 0",borderBottom:"1px solid var(--line)",background:isToday?"var(--accent)":"var(--surface-3)"}}>
+          <div style={{fontFamily:SANS,fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em",color:isToday?"#cfcbea":"var(--ink-2)"}}>{DOW[d.getDay()]}</div>
+          <div style={{fontFamily:SERIF,fontSize:17,fontWeight:700,color:isToday?"#fff":"var(--ink)"}}>{d.getDate()}</div>
         </div>
         <div style={{padding:5}}>{evs.length===0?<div style={{fontSize:10,color:"#b0b4bd",fontFamily:SANS,textAlign:"center",paddingTop:8}}>—</div>:evs.map((e,j)=><EvtChip key={j} e={e} full/>)}</div>
       </div>;})}
     </div>}
 
     {view==="day"&&<div style={{border:"1px solid #b4afa1",background:"#fff",padding:16,minHeight:160}}>
-      {(()=>{const evs=evtsOn(cursor);if(!evs.length)return <div style={{fontSize:13,color:"#6a6f7a",fontFamily:SANS,textAlign:"center",padding:"24px 0"}}>No contingency deadlines on this day.</div>;
-        return <div style={{display:"flex",flexDirection:"column",gap:8}}>{evs.map((e,j)=><div key={j} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",border:"1px solid #e3e0d6",borderLeft:`4px solid ${e.done?"#9bb3a4":CONTINGENCY_COLORS[e.key]}`,background:e.done?"#f1f4f1":"#fdfcf9",opacity:e.done?0.75:1}}>
-          <div style={{fontFamily:SERIF,fontWeight:700,fontSize:15,color:"#23262d",minWidth:150,textDecoration:e.done?"line-through":"none"}}>{e.addr}</div>
+      {(()=>{const evs=evtsOn(cursor);if(!evs.length)return <div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,textAlign:"center",padding:"24px 0"}}>No contingency deadlines on this day.</div>;
+        return <div style={{display:"flex",flexDirection:"column",gap:8}}>{evs.map((e,j)=><div key={j} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",border:"1px solid var(--line)",borderLeft:`4px solid ${e.done?"#9bb3a4":CONTINGENCY_COLORS[e.key]}`,background:e.done?"#f1f4f1":"var(--surface-2)",opacity:e.done?0.75:1}}>
+          <div style={{fontFamily:SERIF,fontWeight:700,fontSize:15,color:"var(--ink)",minWidth:150,textDecoration:e.done?"line-through":"none"}}>{e.addr}</div>
           <div style={{fontFamily:SANS,fontSize:13,color:e.done?"#7c8a80":CONTINGENCY_COLORS[e.key],fontWeight:600}}>{e.label}</div>
           {e.done?<span style={{fontFamily:SANS,fontSize:11,fontWeight:700,color:"#0f7a52"}}>✓ Resolved</span>:<Pill color={statusColors[e.status]||{bg:"#eee",text:"#555"}}>{e.status}</Pill>}
         </div>)}</div>;})()}
     </div>}
 
-    <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginTop:12}}>{events.filter(e=>activeKeys.has(e.key)&&!e.done&&(txn==="all"||e.id===txn)).length} open · {events.filter(e=>activeKeys.has(e.key)&&e.done&&(txn==="all"||e.id===txn)).length} resolved {txn==="all"?`across ${txnOptions.length} active transactions`:`for ${escrow.find(r=>r.id===txn)?.address||"this deal"}`}. Toggle the chips above to filter contingency types.</div>
+    <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:12}}>{events.filter(e=>activeKeys.has(e.key)&&!e.done&&(txn==="all"||e.id===txn)).length} open · {events.filter(e=>activeKeys.has(e.key)&&e.done&&(txn==="all"||e.id===txn)).length} resolved {txn==="all"?`across ${txnOptions.length} active transactions`:`for ${escrow.find(r=>r.id===txn)?.address||"this deal"}`}. Toggle the chips above to filter contingency types.</div>
   </div>;
 }
 
@@ -1963,7 +2017,7 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
         </div>
         {openCma.comps?.length>0&&<>
           {(()=>{const adj=openCma.comps.map(c=>adjustedPrice(openCma,c,adjLib));const subjGla=parseFloat(openCma.subj?.gla)||0;const med=median(adj);return (
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,margin:"14px 0"}}>
+            <div className="hb-grid-4" style={{margin:"14px 0"}}>
               <Card l="Suggested (Median)" v={fmt(med)} accent="#0f7a52"/>
               <Card l="Average" v={fmt(Math.round(adj.reduce((s,x)=>s+x,0)/adj.length))}/>
               <Card l="Range" v={`${fmtS(Math.min(...adj))}–${fmtS(Math.max(...adj))}`}/>
@@ -2002,11 +2056,11 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
           <div>{inp(b.zip,v=>setB(p=>({...p,zip:v})),"Zip","text",{padding:"7px 10px"})}</div>
           <div>{inp(b.client,v=>setB(p=>({...p,client:v})),"Client / purpose","text",{padding:"7px 10px"})}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <div className="hb-grid-2" style={{marginBottom:10}}>
           <div>{inp(b.listPrice,v=>setB(p=>({...p,listPrice:v})),"List / target $","number",{padding:"7px 10px"})}</div>
           <div>{sel(b.status,v=>setB(p=>({...p,status:v})),CSTAT,{padding:"7px 10px"})}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div className="hb-grid-2" style={{}}>
           <div>{inp(b.photosLink,v=>setB(p=>({...p,photosLink:v})),"Subject photos link (gallery, Drive, MLS…)","text",{padding:"7px 10px"})}</div>
           <div>{inp(b.compsLink,v=>setB(p=>({...p,compsLink:v})),"Comps link (MLS — view each comparable)","text",{padding:"7px 10px"})}</div>
         </div>
@@ -2171,8 +2225,8 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
   const ppsf=subjGla>0?Math.round(suggested/subjGla):0;
 
   const B=brands[Math.min(brandIx,brands.length-1)]||brands[0];
-  const INK=B.ink||"#23262d", ACC=B.accent||"#a8813a", PAPER=B.paper||"#f7f5ef";
-  const MUT="#6a6f7a", RULE="#d8d4c8", GREEN="#0f7a52";
+  const INK=B.ink||"var(--ink)", ACC=B.accent||"#a8813a", PAPER=B.paper||"#f7f5ef";
+  const MUT="var(--ink-2)", RULE="var(--line-2)", GREEN="#0f7a52";
   const SER=FP.serif, SN=FP.sans;
   const brandName=B.name||"", tagline=B.tagline||"";
   const brokerage=profile.brokerage||profile.decaName||"";
@@ -2205,7 +2259,7 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
       for(let i=0;i<pages.length;i++){
         setBusy(`Rendering page ${i+1} of ${pages.length}…`);
         await new Promise(r=>setTimeout(r,30)); // let the label paint
-        const canvas=await H2C(pages[i],{scale:2,backgroundColor:"#ffffff",useCORS:true,allowTaint:false,logging:false,imageTimeout:15000,scrollX:0,scrollY:0});
+        const canvas=await H2C(pages[i],{scale:2,backgroundColor:"var(--surface)",useCORS:true,allowTaint:false,logging:false,imageTimeout:15000,scrollX:0,scrollY:0});
         const img=canvas.toDataURL("image/jpeg",0.92);
         const ratio=Math.min(pw/canvas.width, ph/canvas.height);
         const w=canvas.width*ratio, h=canvas.height*ratio;
@@ -2243,8 +2297,8 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
   const gth={textAlign:"left",padding:"7px 8px",fontSize:9.5,color:MUT,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",borderBottom:`2px solid ${INK}`,background:PAPER,fontFamily:SN};
   const gtd=(e={})=>({padding:"7px 8px",fontFamily:SN,fontSize:11.5,borderBottom:`1px solid #e7e4dc`,fontVariantNumeric:"tabular-nums",...e});
   const secHead=(t)=>(<div style={{fontSize:10,fontFamily:SN,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.14em",color:ACC,borderBottom:`1px solid ${RULE}`,paddingBottom:6,margin:"22px 0 11px"}}>{t}</div>);
-  const ctrlBtn=(on,dis)=>({fontSize:12,padding:"5px 12px",border:`1px solid ${on?"#5b606b":"#cdc9bd"}`,background:on?"#5b606b":"#fff",color:on?"#fff":"#5b606b",cursor:dis?"default":"pointer",fontFamily:SANS,fontWeight:on?600:500,borderRadius:4,opacity:dis?0.55:1});
-  const fInp=(v,set,ph)=>(<input value={v||""} onChange={e=>set(e.target.value)} placeholder={ph} style={{padding:"5px 8px",fontSize:12,border:"1px solid #cdc9bd",borderRadius:4,fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
+  const ctrlBtn=(on,dis)=>({fontSize:12,padding:"5px 12px",border:`1px solid ${on?"var(--ink-2)":"var(--line-2)"}`,background:on?"var(--ink-2)":"#fff",color:on?"#fff":"var(--ink-2)",cursor:dis?"default":"pointer",fontFamily:SANS,fontWeight:on?600:500,borderRadius:4,opacity:dis?0.55:1});
+  const fInp=(v,set,ph)=>(<input value={v||""} onChange={e=>set(e.target.value)} placeholder={ph} style={{padding:"5px 8px",fontSize:12,border:"1px solid var(--line-2)",borderRadius:4,fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
   const setP=(k,v)=>saveProfile({...profile,[k]:v});
 
   // page shell: fixed 8.5x11 aspect so what you see is exactly one PDF page
@@ -2262,7 +2316,7 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
         <div style={{fontSize:10.5,color:MUT,marginTop:2}}>{[brandName,brokerage].filter(Boolean).join(" · ")}</div>
       </div>
     </div>
-    <div style={{fontSize:8,color:"#9a9ea7",textAlign:"right",maxWidth:260,lineHeight:1.45}}>Comparable values are adjusted estimates prepared for informational purposes and do not constitute a formal appraisal.{brokerage?` Brokerage: ${brokerage}.`:""}</div>
+    <div style={{fontSize:8,color:"var(--ink-3)",textAlign:"right",maxWidth:260,lineHeight:1.45}}>Comparable values are adjusted estimates prepared for informational purposes and do not constitute a formal appraisal.{brokerage?` Brokerage: ${brokerage}.`:""}</div>
   </div>);
 
   const wordmark=(light)=>{
@@ -2300,7 +2354,7 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
     }`}</style>
 
     {/* control bar */}
-    <div className="no-print" style={{position:"sticky",top:0,zIndex:2,background:"#fff",borderBottom:"1px solid #cdc9bd",padding:"10px 16px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+    <div className="no-print" style={{position:"sticky",top:0,zIndex:2,background:"#fff",borderBottom:"1px solid var(--line-2)",padding:"10px 16px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:MUT,fontFamily:SANS,fontWeight:600}}>Brand</span>
         {brands.map((b,i)=><button key={b.id||i} onClick={()=>setBrandIx(i)} style={ctrlBtn(brandIx===i)}>{b.name||`Brand ${i+1}`}</button>)}</div>
       <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:MUT,fontFamily:SANS,fontWeight:600}}>Detail</span>
@@ -2319,7 +2373,7 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
       {err&&<div style={{flexBasis:"100%",fontSize:11.5,color:"#b3392c",fontFamily:SANS,lineHeight:1.5,background:"#fcf0ee",border:"1px solid #f0d5d0",borderRadius:5,padding:"7px 10px"}}>{err}</div>}
     </div>
     {/* footer-info editors */}
-    <div className="no-print" style={{background:"#fff",borderBottom:"1px solid #e3e0d6",padding:"10px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,maxWidth:PAGE_W,margin:"0 auto"}}>
+    <div className="no-print" style={{background:"#fff",borderBottom:"1px solid var(--line)",padding:"10px 16px",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,maxWidth:PAGE_W,margin:"0 auto"}}>
       {fInp(profile.agentName,v=>setP("agentName",v),"Your name")}
       {fInp(profile.license,v=>setP("license",v),"License #")}
       {fInp(profile.phone,v=>setP("phone",v),"Phone")}
@@ -2477,7 +2531,7 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
           </div>)}
         </div>
 
-        {packet.footnote&&<div style={{fontSize:8,color:"#9a9ea7",fontFamily:SN,lineHeight:1.5,marginTop:12,paddingTop:9,borderTop:`1px solid ${RULE}`,flexShrink:0}}>{packet.footnote}</div>}
+        {packet.footnote&&<div style={{fontSize:8,color:"var(--ink-3)",fontFamily:SN,lineHeight:1.5,marginTop:12,paddingTop:9,borderTop:`1px solid ${RULE}`,flexShrink:0}}>{packet.footnote}</div>}
         <div style={{borderTop:`2px solid ${INK}`,marginTop:12,paddingTop:12,flexShrink:0}}>{signatureBlock}</div>
         {pageFooter}
       </section>}
@@ -2641,7 +2695,7 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
   const initials=(name)=>name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 
   return <div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+    <div className="hb-grid-4" style={{marginBottom:18}}>
       <Card l="Total Contacts" v={String(stats.total)}/><Card l="Active Clients" v={String(stats.active)} accent="var(--accent)"/><Card l="New Leads" v={String(stats.leads)} accent="#d97706"/><Card l="Closed" v={String(stats.closed)} accent="#0f7a52"/>
     </div>
 
@@ -2668,7 +2722,7 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
         <div>{inp(n.phone,v=>setN(p=>({...p,phone:v})),"Phone")}</div>
         <div>{sel(n.linkedAddr,v=>setN(p=>({...p,linkedAddr:v})),addrOptions.map(a=>({v:a,l:a||"— Link to deal —"})))}</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+      <div className="hb-grid-2" style={{marginBottom:8}}>
         <div>{inp(n.lastTouch,v=>setN(p=>({...p,lastTouch:v})),"Last touch (m/d/y)")}</div>
         <div>{inp(n.nextFollowUp,v=>setN(p=>({...p,nextFollowUp:v})),"Next follow-up (m/d/y)")}</div>
       </div>
@@ -2727,7 +2781,7 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
           <div>{inp(ed.phone,v=>setEd(p=>({...p,phone:v})),"Phone")}</div>
           <div>{sel(ed.linkedAddr||"",v=>setEd(p=>({...p,linkedAddr:v})),addrOptions.map(a=>({v:a,l:a||"— Link to deal —"})))}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+        <div className="hb-grid-2" style={{marginBottom:8}}>
           <div>{inp(ed.lastTouch,v=>setEd(p=>({...p,lastTouch:v})),"Last touch")}</div>
           <div>{inp(ed.nextFollowUp,v=>setEd(p=>({...p,nextFollowUp:v})),"Next follow-up")}</div>
         </div>
@@ -2765,16 +2819,16 @@ function ListEditor({title, hint, list, onChange}) {
   const del=(i)=>{ if(confirm(`Remove "${list[i].name}"? Existing records keep this label until you re-tag them.`)) onChange(list.filter((_,j)=>j!==i)); };
   const add=()=>onChange([...list,{name:"New "+title.replace(/s$/,""),...PALETTE[list.length%PALETTE.length]}]);
   return <Section title={title}>
-    {hint&&<div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:10}}>{hint}</div>}
+    {hint&&<div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:10}}>{hint}</div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
       {list.map((it,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
           <button onClick={()=>move(i,-1)} disabled={i===0} title="Move up" style={{...btnGhost,padding:"0 6px",fontSize:10,lineHeight:1.4,opacity:i===0?0.3:1}}>▲</button>
           <button onClick={()=>move(i,1)} disabled={i===list.length-1} title="Move down" style={{...btnGhost,padding:"0 6px",fontSize:10,lineHeight:1.4,opacity:i===list.length-1?0.3:1}}>▼</button>
         </div>
-        <input value={it.name} onChange={e=>set(i,{name:e.target.value})} style={{padding:"6px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,minWidth:150}}/>
+        <input value={it.name} onChange={e=>set(i,{name:e.target.value})} style={{padding:"6px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,minWidth:150}}/>
         <Pill color={{bg:it.bg,text:it.text}}>{it.name||"—"}</Pill>
-        <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{PALETTE.map((p,pi)=><button key={pi} onClick={()=>set(i,{bg:p.bg,text:p.text})} title="Set color" style={{width:18,height:18,borderRadius:4,border:it.bg===p.bg?"2px solid #23262d":"1px solid #cdc9bd",background:p.bg,cursor:"pointer",padding:0}}/>)}</div>
+        <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{PALETTE.map((p,pi)=><button key={pi} onClick={()=>set(i,{bg:p.bg,text:p.text})} title="Set color" style={{width:18,height:18,borderRadius:4,border:it.bg===p.bg?"2px solid var(--ink)":"1px solid var(--line-2)",background:p.bg,cursor:"pointer",padding:0}}/>)}</div>
         <button onClick={()=>del(i)} title="Remove" style={{...btnGhost,padding:"4px 8px",color:"#b3392c",marginLeft:"auto"}}>×</button>
       </div>)}
     </div>
@@ -2783,7 +2837,7 @@ function ListEditor({title, hint, list, onChange}) {
 }
 
 // Stable module-level field wrapper (defining this inside Settings remounts inputs and drops focus on each keystroke)
-const Field = ({label,children}) => (<div><div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3}}>{label}</div>{children}</div>);
+const Field = ({label,children}) => (<div><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3}}>{label}</div>{children}</div>);
 
 // Upload → downscale → data URL. Stored inline so nothing needs external hosting.
 function ImagePicker({label,hint,value,onChange,maxW=600,quality=0.85,boxH=64,dark=false}){
@@ -2798,19 +2852,19 @@ function ImagePicker({label,hint,value,onChange,maxW=600,quality=0.85,boxH=64,da
     finally{ setBusy(false); if(ref.current) ref.current.value=""; }
   };
   return <div>
-    <div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3}}>{label}</div>
+    <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3}}>{label}</div>
     <div style={{display:"flex",alignItems:"center",gap:10}}>
-      <div style={{width:boxH*1.9,height:boxH,border:"1px solid #cdc9bd",borderRadius:6,background:dark?"#2f3034":"#fff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+      <div style={{width:boxH*1.9,height:boxH,border:"1px solid var(--line-2)",borderRadius:6,background:dark?"#2f3034":"#fff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
         {value
           ? <img src={value} alt="" style={{maxWidth:"92%",maxHeight:"88%",objectFit:"contain"}}/>
-          : <span style={{fontSize:10,color:"#9a9ea7",fontFamily:SANS}}>None</span>}
+          : <span style={{fontSize:10,color:"var(--ink-3)",fontFamily:SANS}}>None</span>}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:5,minWidth:0}}>
         <div style={{display:"flex",gap:6}}>
           <button onClick={()=>ref.current&&ref.current.click()} disabled={busy} style={{...btnGhost,padding:"5px 11px",opacity:busy?0.6:1}}>{busy?"Working…":(value?"Replace":"Upload")}</button>
           {value&&<button onClick={()=>{setErr("");onChange("");}} style={{...btnGhost,padding:"5px 9px",color:"#b3392c"}}>Remove</button>}
         </div>
-        <div style={{fontSize:10,color:err?"#b3392c":"#6a6f7a",fontFamily:SANS,lineHeight:1.4}}>
+        <div style={{fontSize:10,color:err?"#b3392c":"var(--ink-2)",fontFamily:SANS,lineHeight:1.4}}>
           {err||(value?`Stored · ~${dataUrlKB(value)} KB`:(hint||"PNG or JPG"))}
         </div>
       </div>
@@ -2819,8 +2873,8 @@ function ImagePicker({label,hint,value,onChange,maxW=600,quality=0.85,boxH=64,da
   </div>;
 }
 
-const svcIn=(val,on,ph,extra={})=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"6px 9px",fontSize:12.5,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",...extra}}/>);
-const svcArea=(val,on,ph,rows=3)=>(<textarea value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} rows={rows} style={{padding:"8px 9px",fontSize:12.5,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",lineHeight:1.55,resize:"vertical"}}/>);
+const svcIn=(val,on,ph,extra={})=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"6px 9px",fontSize:12.5,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",...extra}}/>);
+const svcArea=(val,on,ph,rows=3)=>(<textarea value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} rows={rows} style={{padding:"8px 9px",fontSize:12.5,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",lineHeight:1.55,resize:"vertical"}}/>);
 
 function ServicePackets({profile,saveProfile}){
   const packets=servicePackets(profile);
@@ -2838,18 +2892,18 @@ function ServicePackets({profile,saveProfile}){
   const addPacket=()=>{ write([...packets,{id:uid(),name:"New packet",intro:"",footnote:"",groups:[{id:uid(),title:"New section",items:[{id:uid(),name:"",desc:""}]}]}]); setIx(packets.length); };
   const delPacket=()=>{ if(packets.length<2){alert("Keep at least one packet. Edit this one instead.");return;} if(confirm(`Delete the "${cur.name}" packet?`)){ write(packets.filter((_,j)=>j!==i0)); setIx(0); } };
 
-  if(!cur) return <div style={{fontSize:12,color:"#6a6f7a",fontFamily:SANS}}>No packets. <button onClick={addPacket} style={btnGhost}>+ Add one</button></div>;
+  if(!cur) return <div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS}}>No packets. <button onClick={addPacket} style={btnGhost}>+ Add one</button></div>;
 
   return <>
-    <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:12,lineHeight:1.5}}>An optional back section for the CMA describing what the client gets when they sign with you. Pick which packet to include (or none) from the report toolbar. Two are pre-written below — edit them to match how you actually work.</div>
+    <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:12,lineHeight:1.5}}>An optional back section for the CMA describing what the client gets when they sign with you. Pick which packet to include (or none) from the report toolbar. Two are pre-written below — edit them to match how you actually work.</div>
 
     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-      {packets.map((p,i)=><button key={p.id||i} onClick={()=>setIx(i)} style={{...btnGhost,background:i===ix?"#5b606b":"#fff",color:i===ix?"#fff":"#5b606b",border:`1px solid ${i===ix?"#5b606b":"#cdc9bd"}`,fontWeight:i===ix?600:500}}>{p.name||`Packet ${i+1}`}</button>)}
+      {packets.map((p,i)=><button key={p.id||i} onClick={()=>setIx(i)} style={{...btnGhost,background:i===ix?"var(--ink-2)":"#fff",color:i===ix?"#fff":"var(--ink-2)",border:`1px solid ${i===ix?"var(--ink-2)":"var(--line-2)"}`,fontWeight:i===ix?600:500}}>{p.name||`Packet ${i+1}`}</button>)}
       <button onClick={addPacket} style={{...btnGhost,marginLeft:4}}>+ Packet</button>
       <button onClick={delPacket} style={{...btnGhost,color:"#b3392c"}}>Delete</button>
     </div>
 
-    <div style={{border:"1px solid #e3e0d6",borderRadius:8,padding:12,background:"#fff",marginBottom:12}}>
+    <div style={{border:"1px solid var(--line)",borderRadius:8,padding:12,background:"#fff",marginBottom:12}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12,marginBottom:12}}>
         <Field label="Packet name">{svcIn(cur.name,v=>patch({name:v}),"Seller Representation")}</Field>
         <Field label="Page heading shown to client">{svcIn(cur.heading,v=>patch({heading:v}),"Defaults to the packet name")}</Field>
@@ -2858,7 +2912,7 @@ function ServicePackets({profile,saveProfile}){
       <div style={{marginTop:12}}><Field label="Footnote / compensation disclosure">{svcArea(cur.footnote,v=>patch({footnote:v}),"Printed small at the bottom of the packet.",3)}</Field></div>
     </div>
 
-    {(cur.groups||[]).map((g,gi)=><div key={g.id||gi} style={{border:"1px solid #e3e0d6",borderRadius:8,padding:12,background:"#fff",marginBottom:10}}>
+    {(cur.groups||[]).map((g,gi)=><div key={g.id||gi} style={{border:"1px solid var(--line)",borderRadius:8,padding:12,background:"#fff",marginBottom:10}}>
       <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
         <div style={{flex:1}}>{svcIn(g.title,v=>setGroup(gi,{title:v}),"Section title",{fontWeight:600})}</div>
         <button onClick={()=>delGroup(gi)} title="Delete section" style={{...btnGhost,color:"#b3392c",padding:"5px 9px"}}>×</button>
@@ -2878,17 +2932,17 @@ function BrandKit({profile,saveProfile}){
   const setP=(k,v)=>saveProfile({...profile,[k]:v});
   const brands=brandList(profile);
   const setBrand=(i,patch)=>{ const next=brands.map((b,j)=>j===i?{...b,...patch}:b); saveProfile({...profile,brands:next}); };
-  const txtIn=(val,on,ph)=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
+  const txtIn=(val,on,ph)=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
   const colorIn=(val,on)=>(<div style={{display:"flex",gap:6,alignItems:"center"}}>
-    <input type="color" value={val||"#23262d"} onChange={e=>on(e.target.value)} style={{width:34,height:30,padding:0,border:"1px solid #cdc9bd",borderRadius:6,background:"#fff",cursor:"pointer",flexShrink:0}}/>
-    <input value={val||""} onChange={e=>on(e.target.value)} placeholder="#23262d" style={{padding:"7px 9px",fontSize:12,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>
+    <input type="color" value={val||"var(--ink)"} onChange={e=>on(e.target.value)} style={{width:34,height:30,padding:0,border:"1px solid var(--line-2)",borderRadius:6,background:"#fff",cursor:"pointer",flexShrink:0}}/>
+    <input value={val||""} onChange={e=>on(e.target.value)} placeholder="var(--ink)" style={{padding:"7px 9px",fontSize:12,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>
   </div>);
 
   return <>
-    <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:14,lineHeight:1.5}}>Everything here drives the CMA report. Logos, headshot, and signature are stored inside Homebase — no external hosting needed, and they print reliably. Keep logos under ~600px wide; they're downscaled automatically.</div>
+    <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:14,lineHeight:1.5}}>Everything here drives the CMA report. Logos, headshot, and signature are stored inside Homebase — no external hosting needed, and they print reliably. Keep logos under ~600px wide; they're downscaled automatically.</div>
 
-    {brands.map((b,i)=><div key={b.id||i} style={{border:"1px solid #e3e0d6",borderRadius:8,padding:12,marginBottom:12,background:"#fff"}}>
-      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:10,color:"#23262d"}}>Brand {i+1}</div>
+    {brands.map((b,i)=><div key={b.id||i} style={{border:"1px solid var(--line)",borderRadius:8,padding:12,marginBottom:12,background:"#fff"}}>
+      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:10,color:"var(--ink)"}}>Brand {i+1}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:12}}>
         <Field label="Brand name">{txtIn(b.name,v=>setBrand(i,{name:v}),"Brand name")}</Field>
         <Field label="Tagline (optional)">{txtIn(b.tagline,v=>setBrand(i,{tagline:v}),"Tagline")}</Field>
@@ -2902,12 +2956,12 @@ function BrandKit({profile,saveProfile}){
       {b.logo&&<div style={{marginTop:8}}><ImagePicker label="Logo — reversed (for the dark cover)" hint="Optional. White/light version. Falls back to the logo above." value={b.logoLight} onChange={v=>setBrand(i,{logoLight:v})} maxW={600} boxH={58} dark/></div>}
     </div>)}
 
-    <div style={{border:"1px solid #e3e0d6",borderRadius:8,padding:12,marginBottom:12,background:"#fff"}}>
-      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:10,color:"#23262d"}}>Agent & brokerage</div>
+    <div style={{border:"1px solid var(--line)",borderRadius:8,padding:12,marginBottom:12,background:"#fff"}}>
+      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:10,color:"var(--ink)"}}>Agent & brokerage</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginBottom:12}}>
         <Field label="Brokerage line (always printed)">{txtIn(profile.brokerage,v=>setP("brokerage",v),"Deca Realty")}</Field>
         <Field label="Report typeface">
-          <select value={profile.fontPair||"fraunces"} onChange={e=>setP("fontPair",e.target.value)} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",background:"#fff"}}>
+          <select value={profile.fontPair||"fraunces"} onChange={e=>setP("fontPair",e.target.value)} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",background:"#fff"}}>
             {Object.entries(FONT_PAIRS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
           </select>
         </Field>
@@ -2918,10 +2972,10 @@ function BrandKit({profile,saveProfile}){
       </div>
     </div>
 
-    <div style={{border:"1px solid #e3e0d6",borderRadius:8,padding:12,background:"#fff"}}>
-      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:6,color:"#23262d"}}>Cover letter</div>
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:8,lineHeight:1.5}}>Optional. When filled in, the CMA prints a personal letter page ahead of the numbers. Use <code>{`{{Client}}`}</code>, <code>{`{{Address}}`}</code>, <code>{`{{Price}}`}</code>, and <code>{`{{Agent}}`}</code> — they fill in per CMA. Leave blank to skip the page entirely.</div>
-      <textarea value={profile.letterTemplate||""} onChange={e=>setP("letterTemplate",e.target.value)} rows={7} placeholder={"Dear {{Client}},\n\nThank you for the opportunity to review {{Address}}. The analysis that follows reflects…"} style={{padding:"9px 10px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",lineHeight:1.6,resize:"vertical"}}/>
+    <div style={{border:"1px solid var(--line)",borderRadius:8,padding:12,background:"#fff"}}>
+      <div style={{fontSize:12,fontWeight:700,fontFamily:SANS,marginBottom:6,color:"var(--ink)"}}>Cover letter</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:8,lineHeight:1.5}}>Optional. When filled in, the CMA prints a personal letter page ahead of the numbers. Use <code>{`{{Client}}`}</code>, <code>{`{{Address}}`}</code>, <code>{`{{Price}}`}</code>, and <code>{`{{Agent}}`}</code> — they fill in per CMA. Leave blank to skip the page entirely.</div>
+      <textarea value={profile.letterTemplate||""} onChange={e=>setP("letterTemplate",e.target.value)} rows={7} placeholder={"Dear {{Client}},\n\nThank you for the opportunity to review {{Address}}. The analysis that follows reflects…"} style={{padding:"9px 10px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",lineHeight:1.6,resize:"vertical"}}/>
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
         {["{{Client}}","{{Address}}","{{Price}}","{{Agent}}"].map(t=>
           <button key={t} onClick={()=>setP("letterTemplate",(profile.letterTemplate||"")+t)} style={{...btnGhost,padding:"4px 9px",fontSize:11}}>{t}</button>)}
@@ -2945,8 +2999,8 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
   const saveTpl=(t)=>{ const list=tpls.some(x=>x.id===t.id)?tpls.map(x=>x.id===t.id?t:x):[...tpls,t]; setTpls(list); setTplOpen(false); };
   const delTpl=(id)=>{ if(confirm("Delete this template?")) setTpls(tpls.filter(x=>x.id!==id)); };
 
-  const numIn=(val,on,style={})=>(<input type="number" value={val} onChange={e=>on(e.target.value)} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",...style}}/>);
-  const txtIn=(val,on,ph)=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
+  const numIn=(val,on,style={})=>(<input type="number" value={val} onChange={e=>on(e.target.value)} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",...style}}/>);
+  const txtIn=(val,on,ph)=>(<input value={val||""} onChange={e=>on(e.target.value)} placeholder={ph} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/>);
 
   const exportJSON=()=>{
     const data={hb_hist_v1:stores.hist,hb_esc_v2:stores.escrow,hb_cma_v4:stores.cmas,hb_adj_v1:stores.adjLib,hb_adjcats_v1:stores.adjCats,hb_profile_v1:stores.profile,hb_crm_v1:stores.contacts,hb_settings_v1:stores.settings};
@@ -2967,7 +3021,7 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
   };
 
   return <div>
-    <div style={{display:"flex",gap:2,marginBottom:18,flexWrap:"wrap",borderBottom:"1px solid #ddd8ca"}}>
+    <div style={{display:"flex",gap:2,marginBottom:18,flexWrap:"wrap",borderBottom:"1px solid var(--line)"}}>
       {[["profile","Profile"],["branding","Branding"],["templates","Templates"],["appearance","Appearance"],["lists","Lists & Statuses"],["data","Data"]].map(([k,l])=>
         <button key={k} onClick={()=>setTab(k)} style={subTab(tab===k)}>{l}</button>)}
     </div>
@@ -2975,7 +3029,7 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
     {tab==="profile"&&<>
     {/* Commission plan */}
     <Section title="Commission Plan">
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:12}}>Drives the auto-applied In House / Out of House split and the cap tracker. Rates are percentages.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:12}}>Drives the auto-applied In House / Out of House split and the cap tracker. Rates are percentages.</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
         <Field label="File Audit Fee ($)">{numIn(comm.auditFee,v=>setComm("auditFee",+v||0))}</Field>
         <Field label="In-House Threshold ($)">{numIn(comm.inHouseThreshold,v=>setComm("inHouseThreshold",+v||0))}</Field>
@@ -2985,7 +3039,7 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
         <Field label="Post-cap split (%)">{numIn(Math.round(comm.postCapRate*100),v=>setComm("postCapRate",(+v||0)/100))}</Field>
         <Field label="Annual Cap ($)">{numIn(comm.cap,v=>setComm("cap",+v||0))}</Field>
       </div>
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginTop:10}}>Current: {fmt(comm.auditFee)} audit + in-house {fmt(comm.inHouseLow)}/{fmt(comm.inHouseHigh)} at {fmtS(comm.inHouseThreshold)}; brokerage {Math.round(comm.preCapRate*100)}% to {fmt(comm.cap)} cap, then {Math.round(comm.postCapRate*100)}%.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:10}}>Current: {fmt(comm.auditFee)} audit + in-house {fmt(comm.inHouseLow)}/{fmt(comm.inHouseHigh)} at {fmtS(comm.inHouseThreshold)}; brokerage {Math.round(comm.preCapRate*100)}% to {fmt(comm.cap)} cap, then {Math.round(comm.postCapRate*100)}%.</div>
     </Section>
 
     {/* Profile */}
@@ -3017,16 +3071,16 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
     {tab==="templates"&&<>
     {/* Email Templates */}
     <Section title="Email Templates">
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:12}}>These appear in the "✉ Generate Email" picker on each pipeline deal. The built-in "Title Cover" email (with its parties/timeline logic) stays available alongside these. Type the body directly and click merge-field chips to insert <code>{`{{Tokens}}`}</code>.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:12}}>These appear in the "✉ Generate Email" picker on each pipeline deal. The built-in "Title Cover" email (with its parties/timeline logic) stays available alongside these. Type the body directly and click merge-field chips to insert <code>{`{{Tokens}}`}</code>.</div>
       {tplOpen
         ? <TemplateEditor initial={tplInit} onSave={saveTpl} onCancel={()=>setTplOpen(false)}/>
         : <>
           {tpls.length===0
-            ? <div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,marginBottom:8}}>No templates yet.</div>
-            : <div style={{display:"flex",flexDirection:"column",gap:8}}>{tpls.map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:"1px solid #e3e0d6",borderRadius:6,background:"#fff"}}>
+            ? <div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,marginBottom:8}}>No templates yet.</div>
+            : <div style={{display:"flex",flexDirection:"column",gap:8}}>{tpls.map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:"1px solid var(--line)",borderRadius:6,background:"#fff"}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:600,fontFamily:SANS,fontSize:13}}>{t.name}</div>
-                  <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.subject||"(no subject)"}</div>
+                  <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.subject||"(no subject)"}</div>
                 </div>
                 <button onClick={()=>{setTplInit(t);setTplOpen(true);}} style={btnGhost}>Edit</button>
                 <button onClick={()=>delTpl(t.id)} title="Delete" style={{...btnGhost,color:"#b3392c",padding:"4px 9px"}}>×</button>
@@ -3042,26 +3096,26 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
     <Section title="Defaults">
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
         <Field label="Default landing tab">
-          <select value={s.defaultTab||"home"} onChange={e=>saveSettings({...s,defaultTab:e.target.value})} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS,width:"100%",boxSizing:"border-box",background:"#fff"}}>
+          <select value={s.defaultTab||"home"} onChange={e=>saveSettings({...s,defaultTab:e.target.value})} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",background:"#fff"}}>
             {[["home","Home"],["sales","My Sales"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
         <Field label="Upcoming-deadline window (days)">{numIn((s.dashboard&&s.dashboard.deadlineDays)??14,v=>saveSettings({...s,dashboard:{...(s.dashboard||{}),deadlineDays:+v||0}}))}</Field>
         <Field label="Follow-up window (days)">{numIn((s.dashboard&&s.dashboard.followupDays)??10,v=>saveSettings({...s,dashboard:{...(s.dashboard||{}),followupDays:+v||0}}))}</Field>
       </div>
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginTop:10}}>The dashboard greeting uses your first name from the Profile section above. Default landing tab applies the next time the app loads.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:10}}>The dashboard greeting uses your first name from the Profile section above. Default landing tab applies the next time the app loads.</div>
     </Section>
 
     {/* Appearance */}
     <Section title="Appearance">
       <div style={{display:"flex",flexWrap:"wrap",gap:24}}>
         <div>
-          <div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>Accent color</div>
+          <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>Accent color</div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
             {[["Luzecky Green","#2f4034"],["Indigo","#3a3675"],["Slate","#3f4d8a"],["Teal","#0f766e"],["Forest","#15603a"],["Burgundy","#8a2d3b"],["Plum","#5b2a6b"],["Charcoal","#33373f"]].map(([nm,hex])=>
-              <button key={hex} onClick={()=>saveSettings({...s,accent:hex})} title={nm} style={{width:26,height:26,borderRadius:6,background:hex,border:(s.accent||"#2f4034").toLowerCase()===hex.toLowerCase()?"3px solid #23262d":"1px solid #cdc9bd",cursor:"pointer",padding:0}}/>)}
-            <label style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,fontFamily:SANS,color:"#6a6f7a",marginLeft:6}}>
-              Custom <input type="color" value={s.accent||"#2f4034"} onChange={e=>saveSettings({...s,accent:e.target.value})} style={{width:32,height:26,border:"1px solid #cdc9bd",borderRadius:6,padding:0,background:"#fff",cursor:"pointer"}}/>
+              <button key={hex} onClick={()=>saveSettings({...s,accent:hex})} title={nm} style={{width:26,height:26,borderRadius:6,background:hex,border:(s.accent||"#2f4034").toLowerCase()===hex.toLowerCase()?"3px solid var(--ink)":"1px solid var(--line-2)",cursor:"pointer",padding:0}}/>)}
+            <label style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,fontFamily:SANS,color:"var(--ink-2)",marginLeft:6}}>
+              Custom <input type="color" value={s.accent||"#2f4034"} onChange={e=>saveSettings({...s,accent:e.target.value})} style={{width:32,height:26,border:"1px solid var(--line-2)",borderRadius:6,padding:0,background:"#fff",cursor:"pointer"}}/>
             </label>
           </div>
           <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
@@ -3070,12 +3124,12 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
           </div>
         </div>
         <div>
-          <div style={{fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>Table density</div>
+          <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>Table density</div>
           <div style={{display:"flex",gap:6}}>
             {[["comfortable","Comfortable"],["compact","Compact"]].map(([v,l])=>
               <button key={v} onClick={()=>saveSettings({...s,density:v})} style={{...chip((s.density||"comfortable")===v),padding:"6px 14px"}}>{l}</button>)}
           </div>
-          <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginTop:8,maxWidth:230}}>Compact tightens row spacing across all tables — useful for the wide pipeline grid.</div>
+          <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:8,maxWidth:230}}>Compact tightens row spacing across all tables — useful for the wide pipeline grid.</div>
         </div>
       </div>
     </Section>
@@ -3091,16 +3145,16 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
 
     {/* Adjustment categories pointer */}
     <Section title="CMA Adjustment Values">
-      <div style={{fontSize:12,color:"#6a6f7a",fontFamily:SANS}}>Adjustment categories and dollar values are managed under <strong>My CMAs → Adjustment Values</strong>.</div>
+      <div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS}}>Adjustment categories and dollar values are managed under <strong>My CMAs → Adjustment Values</strong>.</div>
     </Section>
 
-    <div style={{fontSize:11,color:"#9a9ea7",fontFamily:SANS,marginTop:8}}>Note: renaming a status or stage changes the label going forward; existing records keep their old label until you re-tag them.</div>
+    <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:SANS,marginTop:8}}>Note: renaming a status or stage changes the label going forward; existing records keep their old label until you re-tag them.</div>
     </>}
 
     {tab==="data"&&<>
     {/* Data */}
     <Section title="Data Backup & Restore">
-      <div style={{fontSize:11,color:"#6a6f7a",fontFamily:SANS,marginBottom:12}}>Export downloads a JSON file with everything (sales, pipeline, CMAs, contacts, settings). Import restores from such a file.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:12}}>Export downloads a JSON file with everything (sales, pipeline, CMAs, contacts, settings). Import restores from such a file.</div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
         <button onClick={exportJSON} style={btnPrimary}>↓ Export all data (JSON)</button>
         <button onClick={()=>fileRef.current&&fileRef.current.click()} style={btnGhost}>↑ Import from file…</button>
@@ -3118,8 +3172,8 @@ function TemplateEditor({initial, onSave, onCancel}) {
   const [subject,setSubject]=useState(initial?initial.subject:"");
   const [body,setBody]=useState(initial?initial.body:"");
   const subRef=useRef(null), bodyRef=useRef(null), activeRef=useRef("body");
-  const lblS={fontSize:10,color:"#6a6f7a",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3};
-  const inpStyle={width:"100%",boxSizing:"border-box",padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid #cdc9bd",fontFamily:SANS};
+  const lblS={fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:3};
+  const inpStyle={width:"100%",boxSizing:"border-box",padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS};
   const insert=(token)=>{
     const which=activeRef.current; const el=which==="subject"?subRef.current:bodyRef.current;
     const cur=which==="subject"?subject:body; const setCur=which==="subject"?setSubject:setBody;
@@ -3129,7 +3183,7 @@ function TemplateEditor({initial, onSave, onCancel}) {
     setCur(cur.slice(0,a)+tok+cur.slice(b));
     setTimeout(()=>{ try{ el.focus(); const p=a+tok.length; el.setSelectionRange(p,p); }catch(e){} },0);
   };
-  return <div style={{border:"1px solid #cdc9bd",borderRadius:8,padding:14,background:"#fff"}}>
+  return <div style={{border:"1px solid var(--line-2)",borderRadius:8,padding:14,background:"#fff"}}>
     <div style={{display:"grid",gap:10}}>
       <div><div style={lblS}>Template name</div><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Buyer Welcome" style={inpStyle}/></div>
       <div><div style={lblS}>Subject</div><input ref={subRef} onFocus={()=>{activeRef.current="subject";}} value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Subject line (merge fields allowed)" style={inpStyle}/></div>
@@ -3137,8 +3191,8 @@ function TemplateEditor({initial, onSave, onCancel}) {
         <div style={lblS}>Merge fields — click to insert at cursor</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
           {MERGE_FIELDS.map(([grp,items])=><div key={grp} style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
-            <span style={{fontSize:9,color:"#9a9ea7",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.05em"}}>{grp}</span>
-            {items.map(([tok,label])=><button key={tok} onClick={()=>insert(tok)} title={`{{${tok}}}`} style={{fontSize:10.5,padding:"3px 8px",borderRadius:4,border:"1px solid #cdc9bd",background:"#f3f1ea",color:"var(--accent)",cursor:"pointer",fontFamily:SANS}}>{label}</button>)}
+            <span style={{fontSize:9,color:"var(--ink-3)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.05em"}}>{grp}</span>
+            {items.map(([tok,label])=><button key={tok} onClick={()=>insert(tok)} title={`{{${tok}}}`} style={{fontSize:10.5,padding:"3px 8px",borderRadius:4,border:"1px solid var(--line-2)",background:"var(--surface-3)",color:"var(--accent)",cursor:"pointer",fontFamily:SANS}}>{label}</button>)}
           </div>)}
         </div>
       </div>
@@ -3162,22 +3216,22 @@ function ContactPicker({contacts, onPick, onClose}) {
     .sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(20,20,25,0.5)",overflow:"auto",padding:"40px 14px"}}>
     <div onClick={e=>e.stopPropagation()} style={{maxWidth:480,margin:"0 auto",background:"#f7f4ec",borderRadius:12,boxShadow:"0 14px 44px rgba(0,0,0,0.32)",overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 16px",borderBottom:"1px solid #cdc9bd",background:"#fff"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 16px",borderBottom:"1px solid var(--line-2)",background:"#fff"}}>
         <div style={{fontFamily:SERIF,fontSize:16,fontWeight:700,color:"var(--accent)"}}>Link a contact</div>
         <button onClick={onClose} style={btnGhost}>Close</button>
       </div>
       <div style={{padding:"12px 16px"}}>
-        <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search name, email, phone, address…" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",fontSize:13,borderRadius:8,border:"1px solid #cdc9bd",fontFamily:SANS,marginBottom:10}}/>
+        <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search name, email, phone, address…" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",fontSize:13,borderRadius:8,border:"1px solid var(--line-2)",fontFamily:SANS,marginBottom:10}}/>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>{types.map(t=><button key={t} onClick={()=>setType(t)} style={chip(type===t)}>{t}</button>)}</div>
         <div style={{maxHeight:340,overflow:"auto",display:"flex",flexDirection:"column",gap:6}}>
           {list.length===0
-            ? <div style={{fontSize:12,color:"#9a9ea7",fontFamily:SANS,padding:"8px 2px"}}>No matching contacts.</div>
-            : list.map(c=><button key={c.id} onClick={()=>onPick(c)} style={{textAlign:"left",border:"1px solid #e3e0d6",borderRadius:8,padding:"9px 11px",background:"#fff",cursor:"pointer",fontFamily:SANS}}>
+            ? <div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"8px 2px"}}>No matching contacts.</div>
+            : list.map(c=><button key={c.id} onClick={()=>onPick(c)} style={{textAlign:"left",border:"1px solid var(--line)",borderRadius:8,padding:"9px 11px",background:"#fff",cursor:"pointer",fontFamily:SANS}}>
                 <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-                  <span style={{fontWeight:600,fontSize:13,color:"#23262d"}}>{c.name||"(no name)"}</span>
-                  {c.type&&<span style={{fontSize:10,color:"#6a6f7a"}}>{c.type}</span>}
+                  <span style={{fontWeight:600,fontSize:13,color:"var(--ink)"}}>{c.name||"(no name)"}</span>
+                  {c.type&&<span style={{fontSize:10,color:"var(--ink-2)"}}>{c.type}</span>}
                 </div>
-                <div style={{fontSize:11,color:"#6a6f7a",marginTop:2}}>{[c.email,c.phone].filter(Boolean).join("  ·  ")||"—"}</div>
+                <div style={{fontSize:11,color:"var(--ink-2)",marginTop:2}}>{[c.email,c.phone].filter(Boolean).join("  ·  ")||"—"}</div>
               </button>)}
         </div>
       </div>
