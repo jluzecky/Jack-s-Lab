@@ -55,6 +55,23 @@
     :root{--shell-pad-x:13px;--shell-pad-y:16px;}
     .hb-grid-4,.hb-grid-3{grid-template-columns:1fr;}
   }
+  /* ── Data tables ───────────────────────────────────────────────
+     A sticky header only works inside an element that actually scrolls
+     vertically. overflow-x:auto alone computes overflow-y to auto, which
+     makes a scroll container with no vertical scroll — the header then
+     pins to a box that scrolls away with the page. Capping the height on
+     wide screens gives the header something real to stick to; on small
+     screens the page scroll is the better interaction, so no cap. */
+  .hb-tablescroll{overflow:auto;-webkit-overflow-scrolling:touch;}
+  @media (min-width:900px){ .hb-tablescroll{max-height:72vh;} }
+  .hb-tablescroll thead th{position:sticky;top:0;z-index:2;box-shadow:inset 0 -1px 0 var(--line-2);}
+
+  /* Zebra + hover. Rows must not set an inline background of their own or
+     it wins over these rules; highlighted rows deliberately still do. */
+  .hb-rows tbody tr:nth-child(even){background:rgba(28,31,38,0.022);}
+  .hb-rows tbody tr:hover{background:rgba(181,163,111,0.13);}
+  .hb-rows tbody tr{transition:background .1s ease;}
+
   /* Comfortable touch targets on real phones without inflating desktop. */
   @media (max-width:560px) and (pointer:coarse){
     input,select,textarea{font-size:16px!important;padding:9px 11px!important;}
@@ -724,16 +741,16 @@ function Line({series,h=140}) {
   const W=Math.max(labels.length*56,200);const pad={t:20,b:26,l:8,r:8};
   const xs=(i)=>pad.l+i*(W/(Math.max(labels.length-1,1)));const ys=(v)=>pad.t+(1-v/max)*(h-pad.t-pad.b);
   return <svg viewBox={`0 0 ${W+16} ${h}`} height={h} preserveAspectRatio="xMidYMid meet" style={{width:"100%",display:"block",overflow:"visible"}}>
-    {[0,0.5,1].map(f=><line key={f} x1={pad.l} x2={W+pad.r} y1={ys(f*max)} y2={ys(f*max)} stroke="var(--color-border-tertiary)" strokeWidth={0.5}/>)}
+    {[0,0.5,1].map(f=><line key={f} x1={pad.l} x2={W+pad.r} y1={ys(f*max)} y2={ys(f*max)} stroke="var(--line)" strokeWidth={0.5}/>)}
     {series.map((s,si)=>{const pts=s.data.map((d,i)=>`${xs(i)},${ys(d.v)}`).join(" ");const fp=[`${xs(0)},${ys(0)}`,...s.data.map((d,i)=>`${xs(i)},${ys(d.v)}`),`${xs(s.data.length-1)},${ys(0)}`].join(" ");
       return <g key={si}><polygon points={fp} fill={CC[si]} opacity={0.07}/><polyline points={pts} fill="none" stroke={CC[si]} strokeWidth={2} strokeLinejoin="round"/>{s.data.map((d,i)=><circle key={i} cx={xs(i)} cy={ys(d.v)} r={3} fill={CC[si]}/>)}</g>;})}
-    {labels.map((l,i)=><text key={i} x={xs(i)} y={h-4} textAnchor="middle" fontSize={10} fill="var(--color-text-secondary)">{l}</text>)}
+    {labels.map((l,i)=><text key={i} x={xs(i)} y={h-4} textAnchor="middle" fontSize={10} fill="var(--ink-2)">{l}</text>)}
   </svg>;
 }
 function Donut({segs,size=120}) {
   const total=segs.reduce((s,x)=>s+x.v,0)||1;let off=0;const r=38;const cx=size/2;const cy=size/2;
   const arc=(start,end)=>{const a1=start*2*Math.PI-Math.PI/2;const a2=end*2*Math.PI-Math.PI/2;const x1=cx+r*Math.cos(a1);const y1=cy+r*Math.sin(a1);const x2=cx+r*Math.cos(a2);const y2=cy+r*Math.sin(a2);return `M${cx} ${cy}L${x1} ${y1}A${r} ${r} 0 ${(end-start)>0.5?1:0} 1 ${x2} ${y2}Z`;};
-  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>{segs.map((s,i)=>{const start=off;off+=s.v/total;return <path key={i} d={arc(start,off)} fill={CC[i%CC.length]} opacity={0.85}/>;})}<circle cx={cx} cy={cy} r={22} fill="var(--color-background-primary)"/></svg>;
+  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>{segs.map((s,i)=>{const start=off;off+=s.v/total;return <path key={i} d={arc(start,off)} fill={CC[i%CC.length]} opacity={0.85}/>;})}<circle cx={cx} cy={cy} r={22} fill="var(--surface)"/></svg>;
 }
 
 // ════════════════════════ FORM PRIMITIVES ════════════════════════
@@ -897,25 +914,18 @@ function Homebase() {
     return ()=>{};
   },[settings&&settings.accent,settings&&settings.accent2]);
 
-  const parentS=(k)=>({padding:"9px 16px 11px",fontSize:13.5,fontWeight:parent===k?700:500,letterSpacing:"0.02em",color:parent===k?"var(--color-text-primary)":"var(--ink-3)",background:"none",border:"none",borderBottom:parent===k?"2.5px solid var(--accent-2)":"2.5px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",whiteSpace:"nowrap",transition:"color .12s ease"});
+  const parentS=(k)=>({padding:"9px 16px 11px",fontSize:13.5,fontWeight:parent===k?700:500,letterSpacing:"0.02em",color:parent===k?"var(--ink)":"var(--ink-3)",background:"none",border:"none",borderBottom:parent===k?"2.5px solid var(--accent-2)":"2.5px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",whiteSpace:"nowrap",transition:"color .12s ease"});
 
   return (
     <SettingsCtx.Provider value={settings}>
     <div style={{
-        // editorial palette — overrides host vars for the whole subtree (fixed light, designed)
-        "--color-background-primary":"var(--surface)",
+        // Palette tokens live on :root; only the user-configurable values and
+        // density need to be re-declared per-subtree. The --color-* aliases
+        // this used to carry are gone — nothing references them any more.
         "--accent": (settings&&settings.accent)||"#2f4034",
         "--accent-2": (settings&&settings.accent2)||"#b5a36f",
         "--rowpad-y": (settings&&settings.density==="compact")?"3px":"7px",
         "--rowpad-x": (settings&&settings.density==="compact")?"6px":"9px",
-        "--color-background-secondary":"var(--surface-3)",
-        "--color-background-tertiary":"#edeae1",
-        "--color-text-primary":"var(--ink)",
-        "--color-text-secondary":"var(--ink-2)",
-        "--color-text-tertiary":"var(--ink-3)",
-        "--color-border-tertiary":"var(--line)",
-        "--color-border-secondary":"var(--line-2)",
-        "--color-border-primary":"#b4afa1",
         fontFamily:"'Georgia',serif",
         color:"var(--ink)",
         background:"var(--paper)",
@@ -939,7 +949,7 @@ function Homebase() {
         {[["home","Home"],["sales","My Sales"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
       </div>
 
-      {parent==="home" && <Dashboard hist={hist} escrow={escrow} cmas={cmas} contacts={contacts} go={setParent} profile={profile}/>}
+      {parent==="home" && <Dashboard hist={hist} escrow={escrow} cmas={cmas} contacts={contacts} go={setParent} profile={profile} adjLib={adjLib}/>}
       {parent==="sales" && <MySales hist={hist} saveHist={saveHist} escrow={escrow} saveEscrow={saveEscrow} profile={profile} saveProfile={saveProfile} contacts={contacts}/>}
       {parent==="cmas" && <MyCMAs cmas={cmas} saveCmas={saveCmas} adjLib={adjLib} saveAdjLib={saveAdjLib} adjCats={adjCats} saveAdjCats={saveAdjCats} profile={profile} saveProfile={saveProfile} addrOptions={addrOptions} onPromote={promoteCmaToPipeline}/>}
       {parent==="crm" && <MyCRM contacts={contacts} saveContacts={saveContacts} addrOptions={addrOptions}/>}
@@ -963,7 +973,7 @@ const btnGhost={fontSize:12,padding:"7px 13px",borderRadius:"var(--r-sm)",border
 const typeColor=(t)=>t==="B"?{bg:"#dbeafe",text:"#1e40af"}:t==="S"?{bg:"#dcfce7",text:"#166534"}:{bg:"#f3f4f6",text:"#374151"};
 
 // ════════════════════════ HOME DASHBOARD ════════════════════════
-function Dashboard({hist,escrow,cmas,contacts,go,profile}) {
+function Dashboard({hist,escrow,cmas,contacts,go,profile,adjLib}) {
   const S=useSettings();
   const statusColors=colorMap(S.pipelineStatuses); const cmaColors=colorMap(S.cmaStatuses);
   const dlDays=(S.dashboard&&S.dashboard.deadlineDays)||14;
@@ -1062,7 +1072,7 @@ function Dashboard({hist,escrow,cmas,contacts,go,profile}) {
       <SecLink title="CMAs needing attention" onClick={()=>go("cmas")}>
         {cmaAttn.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS,padding:"6px 0"}}>All CMAs are resolved.</div>:
           cmaAttn.slice(0,7).map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<Math.min(cmaAttn.length,7)-1?"1px solid var(--line)":"none"}}>
-            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"var(--ink)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.subject}</div><div style={{fontFamily:SANS,fontSize:11,color:"var(--ink-2)"}}>{c.client||"—"} · {c.suggested?fmt(c.suggested):"—"}</div></div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontFamily:SANS,fontSize:12.5,fontWeight:600,color:"var(--ink)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.subject}</div><div style={{fontFamily:SANS,fontSize:11,color:"var(--ink-2)"}}>{c.client||"—"} · {(()=>{const sg=cmaSuggested(c,adjLib);return sg?fmt(sg):"—";})()}</div></div>
             <Pill color={cmaColors[c.status||"Draft"]||{bg:"#eee",text:"#555"}}>{c.status||"Draft"}</Pill>
           </div>)}
       </SecLink>
@@ -1250,7 +1260,7 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
   const SI=({col})=>hSort.col===col?<span style={{color:"var(--accent)",fontSize:10}}>{hSort.dir==="asc"?"↑":"↓"}</span>:<span style={{color:"#9ca3af",fontSize:10}}>⇅</span>;
 
   return <div>
-    <div style={{display:"flex",borderBottom:"1px solid #b4afa1",marginBottom:20,overflowX:"auto"}}>
+    <div style={{display:"flex",borderBottom:"1px solid var(--line-3)",marginBottom:20,overflowX:"auto"}}>
       {[["escrow","Pipeline & Escrow"],["calendar","Transaction Calendar"],["history","Sales History"],["stats","Annual Stats"],["commissions","Commissions"],["trends","Trends & Reports"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={subTab(tab===k)}>{l}</button>)}
     </div>
 
@@ -1259,16 +1269,16 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
       <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{["All",...PSTAT].map(s=><button key={s} onClick={()=>setEFilter(s)} style={chip(eFilter===s)}>{s}</button>)}</div>
         <button onClick={()=>setReport("escrow")} style={{...btnGhost,marginLeft:"auto",borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button>
-        <button onClick={()=>setEAdd(!eAdd)} style={{...btnGhost,background:eAdd?"var(--accent)":"var(--color-background-secondary)",color:eAdd?"#fff":"var(--color-text-primary)"}}>+ Add</button>
+        <button onClick={()=>setEAdd(!eAdd)} style={{...btnGhost,background:eAdd?"var(--accent)":"var(--surface-3)",color:eAdd?"#fff":"var(--ink)"}}>+ Add</button>
       </div>
-      {eAdd&&<div style={{background:"var(--color-background-secondary)",borderRadius:6,padding:14,marginBottom:12,border:"1px solid var(--color-border-tertiary)"}}>
+      {eAdd&&<div style={{background:"var(--surface-3)",borderRadius:6,padding:14,marginBottom:12,border:"1px solid var(--line)"}}>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",gap:8,marginBottom:8}}>{[["address","Address"],["price","Price"],["gross","Gross Comm"],["agentComm","Agent Comm"],["brokerComm","Broker Comm"]].map(([k,ph])=><div key={k}>{inp(eN[k],v=>setEN(p=>({...p,[k]:v})),ph)}</div>)}</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 2fr",gap:8,marginBottom:10}}><div>{sel(eN.status,v=>setEN(p=>({...p,status:v})),PSTAT)}</div>{[["contractType","Contract Type"],["concessions","Concessions"],["notes","Notes"]].map(([k,ph])=><div key={k}>{inp(eN[k],v=>setEN(p=>({...p,[k]:v})),ph)}</div>)}</div>
-        <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:SANS,marginBottom:10}}>Add the transaction, then enter contingency dates directly in the grid columns.</div>
+        <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:10}}>Add the transaction, then enter contingency dates directly in the grid columns.</div>
         <div style={{display:"flex",gap:8}}><button onClick={eAddRow} style={btnPrimary}>Add</button><button onClick={()=>setEAdd(false)} style={btnGhost}>Cancel</button></div>
       </div>}
-      <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:SANS,marginBottom:8}}>Scroll right to enter contingency dates. Dates save as you pick them and feed the Transaction Calendar.</div>
-      <div style={{overflowX:"auto",border:"1px solid #b4afa1"}}><table style={{borderCollapse:"collapse"}}>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:8}}>Scroll right to enter contingency dates. Dates save as you pick them and feed the Transaction Calendar.</div>
+      <div className="hb-tablescroll" style={{border:"1px solid var(--line-3)"}}><table className="hb-rows" style={{borderCollapse:"collapse"}}>
         <thead><tr>
           <th onClick={()=>eTS("address")} style={{...thS,position:"sticky",left:0,zIndex:2,minWidth:150,cursor:"pointer"}}>Address{eArrow("address")}</th>
           <th onClick={()=>eTS("price")} style={{...thS,minWidth:90,textAlign:"right",cursor:"pointer"}}>Sale Price{eArrow("price")}</th>
@@ -1355,27 +1365,27 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
 
     {tab==="history"&&<div>
       <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-        <input placeholder="Search address, zip, source…" value={hSearch} onChange={e=>setHSearch(e.target.value)} style={{flex:1,minWidth:180,padding:"7px 12px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}/>
-        <select value={hYear} onChange={e=>setHYear(e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>{hYears.map(y=><option key={y}>{y}</option>)}</select>
+        <input placeholder="Search address, zip, source…" value={hSearch} onChange={e=>setHSearch(e.target.value)} style={{flex:1,minWidth:180,padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}/>
+        <select value={hYear} onChange={e=>setHYear(e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}>{hYears.map(y=><option key={y}>{y}</option>)}</select>
         <button onClick={()=>setReport("history")} style={{...btnGhost,padding:"7px 14px",borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button>
-        <button onClick={()=>setHAdd(!hAdd)} style={{...btnGhost,padding:"7px 14px",background:hAdd?"var(--accent)":"var(--color-background-secondary)",color:hAdd?"#fff":"var(--color-text-primary)"}}>+ Add Transaction</button>
+        <button onClick={()=>setHAdd(!hAdd)} style={{...btnGhost,padding:"7px 14px",background:hAdd?"var(--accent)":"var(--surface-3)",color:hAdd?"#fff":"var(--ink)"}}>+ Add Transaction</button>
       </div>
-      {hAdd&&<div style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14,marginBottom:12,border:"0.5px solid var(--color-border-tertiary)"}}>
+      {hAdd&&<div style={{background:"var(--surface-3)",borderRadius:10,padding:14,marginBottom:12,border:"1px solid var(--line)"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr 1fr 1fr 1fr 1fr",gap:8,marginBottom:8}}>{[["date","Date (m/d/y)"],["address","Address"],["zip","Zip"],["price","Sale Price"],["gross","Gross Comm"],["agent","Agent Comm"],["brokerage","Broker Comm"]].map(([k,ph])=><div key={k}>{inp(hN[k],v=>setHN(p=>({...p,[k]:v})),ph)}</div>)}</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8,marginBottom:10}}><div>{sel(hN.type,v=>setHN(p=>({...p,type:v})),[{v:"S",l:"S — Sell Side"},{v:"B",l:"B — Buy Side"},{v:"B/S",l:"B/S — Both"},{v:"T",l:"T — Tenant"},{v:"WS",l:"WS — Wholesale"}])}</div><div>{inp(hN.source,v=>setHN(p=>({...p,source:v})),"Lead Source")}</div></div>
         <div style={{display:"flex",gap:8}}><button onClick={hAddRow} style={btnPrimary}>Add to History</button><button onClick={()=>setHAdd(false)} style={btnGhost}>Cancel</button></div>
       </div>}
-      <div style={{fontSize:11,color:"var(--color-text-secondary)",marginBottom:8,fontFamily:"sans-serif"}}>{fH.length} transactions · {fmtS(fH.reduce((s,r)=>s+(r.price||0),0))} volume · {fmt(fH.reduce((s,r)=>s+(r.agent||0),0))} agent comm</div>
-      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+      <div style={{fontSize:11,color:"var(--ink-2)",marginBottom:8,fontFamily:SANS}}>{fH.length} transactions · {fmtS(fH.reduce((s,r)=>s+(r.price||0),0))} volume · {fmt(fH.reduce((s,r)=>s+(r.agent||0),0))} agent comm</div>
+      <div className="hb-tablescroll"><table className="hb-rows" style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
         <colgroup><col style={{width:"9%"}}/><col style={{width:"22%"}}/><col style={{width:"6%"}}/><col style={{width:"11%"}}/><col style={{width:"11%"}}/><col style={{width:"11%"}}/><col style={{width:"5%"}}/><col style={{width:"12%"}}/><col style={{width:"13%"}}/></colgroup>
-        <thead><tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>{[["date","Date"],["address","Address"],["zip","Zip"],["price","Sale Price"],["gross","Gross"],["agent","Agent Comm"],["type","T"],["source","Source"],["_",""]].map(([col,l])=><th key={col} onClick={col!=="_"?()=>hTS(col):undefined} style={{...thS,cursor:col!=="_"?"pointer":"default"}}>{l}{col!=="_"&&<> <SI col={col}/></>}</th>)}</tr></thead>
-        <tbody>{fH.map(row=>{const isEd=hEdit===row.id;const tc=typeColor(row.type);return <tr key={row.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)",background:isEd?"var(--color-background-secondary)":"transparent"}}>
-          <td style={tdS({color:"var(--color-text-secondary)",whiteSpace:"nowrap"})}>{isEd?inp(hED.date||"",v=>setHED(p=>({...p,date:v})),"m/d/y"):row.date}</td>
+        <thead><tr style={{borderBottom:"1px solid var(--line)"}}>{[["date","Date"],["address","Address"],["zip","Zip"],["price","Sale Price"],["gross","Gross"],["agent","Agent Comm"],["type","T"],["source","Source"],["_",""]].map(([col,l])=><th key={col} onClick={col!=="_"?()=>hTS(col):undefined} style={{...thS,cursor:col!=="_"?"pointer":"default"}}>{l}{col!=="_"&&<> <SI col={col}/></>}</th>)}</tr></thead>
+        <tbody>{fH.map(row=>{const isEd=hEdit===row.id;const tc=typeColor(row.type);return <tr key={row.id} style={{borderBottom:"1px solid var(--line)",background:isEd?"var(--surface-3)":undefined}}>
+          <td style={tdS({color:"var(--ink-2)",whiteSpace:"nowrap"})}>{isEd?inp(hED.date||"",v=>setHED(p=>({...p,date:v})),"m/d/y"):row.date}</td>
           <td style={tdS({fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{isEd?inp(hED.address||"",v=>setHED(p=>({...p,address:v})),"Address"):row.address}</td>
-          <td style={tdS({color:"var(--color-text-secondary)"})}>{isEd?inp(hED.zip||"",v=>setHED(p=>({...p,zip:v})),"Zip"):row.zip}</td>
-          {["price","gross","agent"].map(f=><td key={f} style={tdS({color:f==="agent"&&(row[f]||0)>0?"#0f7a52":"var(--color-text-primary)"})}>{isEd?inp(hED[f]??row[f],v=>setHED(p=>({...p,[f]:+v||0})),"","number"):(row[f]>0?fmt(row[f]):"—")}</td>)}
+          <td style={tdS({color:"var(--ink-2)"})}>{isEd?inp(hED.zip||"",v=>setHED(p=>({...p,zip:v})),"Zip"):row.zip}</td>
+          {["price","gross","agent"].map(f=><td key={f} style={tdS({color:f==="agent"&&(row[f]||0)>0?"#0f7a52":"var(--ink)"})}>{isEd?inp(hED[f]??row[f],v=>setHED(p=>({...p,[f]:+v||0})),"","number"):(row[f]>0?fmt(row[f]):"—")}</td>)}
           <td style={tdS()}>{isEd?sel(hED.type||row.type,v=>setHED(p=>({...p,type:v})),["S","B","B/S","T","WS"]):<Pill color={tc}>{row.type||"—"}</Pill>}</td>
-          <td style={tdS({color:"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{isEd?inp(hED.source||"",v=>setHED(p=>({...p,source:v})),"Source"):row.source||"—"}</td>
+          <td style={tdS({color:"var(--ink-2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{isEd?inp(hED.source||"",v=>setHED(p=>({...p,source:v})),"Source"):row.source||"—"}</td>
           <td style={tdS()}>{isEd?<div style={{display:"flex",gap:3}}><button onClick={hSave} style={{...btnPrimary,fontSize:10,padding:"3px 7px"}}>Save</button><button onClick={()=>setHEdit(null)} style={{...btnGhost,fontSize:10,padding:"3px 5px"}}>×</button></div>:<div style={{display:"flex",gap:3}}><button onClick={()=>{setHEdit(row.id);setHED({...row});}} style={{...btnGhost,fontSize:10,padding:"3px 7px"}}>Edit</button><button onClick={()=>hDel(row.id)} style={{...btnGhost,fontSize:10,padding:"3px 5px",color:"#b3392c"}}>×</button></div>}</td>
         </tr>;})}</tbody>
       </table></div>
@@ -1386,13 +1396,13 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
       <div className="hb-grid-4" style={{marginBottom:22}}>
         <Card l="All-Time Volume" v={fmtS(yearly.reduce((s,r)=>s+r.vol,0))}/><Card l="All-Time Transactions" v={yearly.reduce((s,r)=>s+r.tx,0).toString()}/><Card l="All-Time Agent Comm" v={fmt(yearly.reduce((s,r)=>s+r.agent,0))} accent="#0f7a52"/><Card l="Best Year (Comm)" v={yearly.reduce((a,b)=>a.agent>b.agent?a:b,{year:"—",agent:0}).year.toString()} accent="var(--accent)"/>
       </div>
-      <div style={{overflowX:"auto",marginBottom:24}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-        <thead><tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>{["Year","Trans.","List.","Buys","Volume","Gross Comm","Agent Comm","Broker Comm"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
-        <tbody>{yearly.map(r=><tr key={r.year} style={{borderBottom:"0.5px solid var(--color-border-tertiary)",background:r.year===2026?"rgba(58,54,117,0.06)":"transparent"}}><td style={{...tdS({fontWeight:600}),color:r.year===2026?"var(--accent)":"var(--color-text-primary)"}}>{r.year}{r.year===2026&&<span style={{marginLeft:4,fontSize:9,color:"var(--accent)",fontWeight:400}}>YTD</span>}</td><td style={tdS()}>{r.tx}</td><td style={tdS()}>{r.list}</td><td style={tdS()}>{r.buy}</td><td style={tdS({fontWeight:500})}>{fmtS(r.vol)}</td><td style={tdS({color:"#0f7a52"})}>{fmt(r.gross)}</td><td style={tdS()}>{fmt(r.agent)}</td><td style={tdS({color:"var(--color-text-secondary)"})}>{fmt(r.brok)}</td></tr>)}</tbody>
-        <tfoot><tr style={{borderTop:"1px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}><td style={tdS({fontWeight:700})}>Total</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.tx,0)}</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.list,0)}</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.buy,0)}</td><td style={tdS({fontWeight:700})}>{fmtS(yearly.reduce((s,r)=>s+r.vol,0))}</td><td style={tdS({fontWeight:700,color:"#0f7a52"})}>{fmt(yearly.reduce((s,r)=>s+r.gross,0))}</td><td style={tdS({fontWeight:700})}>{fmt(yearly.reduce((s,r)=>s+r.agent,0))}</td><td style={tdS({fontWeight:700})}>{fmt(yearly.reduce((s,r)=>s+r.brok,0))}</td></tr></tfoot>
+      <div className="hb-tablescroll" style={{marginBottom:24}}><table className="hb-rows" style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Year","Trans.","List.","Buys","Volume","Gross Comm","Agent Comm","Broker Comm"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
+        <tbody>{yearly.map(r=><tr key={r.year} style={{borderBottom:"1px solid var(--line)",background:r.year===2026?"rgba(47,64,52,0.09)":undefined}}><td style={{...tdS({fontWeight:600}),color:r.year===2026?"var(--accent)":"var(--ink)"}}>{r.year}{r.year===2026&&<span style={{marginLeft:4,fontSize:9,color:"var(--accent)",fontWeight:400}}>YTD</span>}</td><td style={tdS()}>{r.tx}</td><td style={tdS()}>{r.list}</td><td style={tdS()}>{r.buy}</td><td style={tdS({fontWeight:500})}>{fmtS(r.vol)}</td><td style={tdS({color:"#0f7a52"})}>{fmt(r.gross)}</td><td style={tdS()}>{fmt(r.agent)}</td><td style={tdS({color:"var(--ink-2)"})}>{fmt(r.brok)}</td></tr>)}</tbody>
+        <tfoot><tr style={{borderTop:"1px solid var(--line)",background:"var(--surface-3)"}}><td style={tdS({fontWeight:700})}>Total</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.tx,0)}</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.list,0)}</td><td style={tdS({fontWeight:700})}>{yearly.reduce((s,r)=>s+r.buy,0)}</td><td style={tdS({fontWeight:700})}>{fmtS(yearly.reduce((s,r)=>s+r.vol,0))}</td><td style={tdS({fontWeight:700,color:"#0f7a52"})}>{fmt(yearly.reduce((s,r)=>s+r.gross,0))}</td><td style={tdS({fontWeight:700})}>{fmt(yearly.reduce((s,r)=>s+r.agent,0))}</td><td style={tdS({fontWeight:700})}>{fmt(yearly.reduce((s,r)=>s+r.brok,0))}</td></tr></tfoot>
       </table></div>
-      <div style={{marginBottom:8,fontSize:13,fontWeight:600,color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>Annual volume</div><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color="var(--accent)" h={100}/>
-      <div style={{marginTop:20,marginBottom:8,fontSize:13,fontWeight:600,color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>Agent commission by year</div><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.agent,f:fmtS(r.agent)}))} color="#0f7a52" h={100}/>
+      <div style={{marginBottom:8,fontSize:13,fontWeight:600,color:"var(--ink)",fontFamily:SANS}}>Annual volume</div><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color="var(--accent)" h={100}/>
+      <div style={{marginTop:20,marginBottom:8,fontSize:13,fontWeight:600,color:"var(--ink)",fontFamily:SANS}}>Agent commission by year</div><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.agent,f:fmtS(r.agent)}))} color="#0f7a52" h={100}/>
     </div>}
 
     {tab==="trends"&&<div>
@@ -1400,30 +1410,30 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
       <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{[["overview","Overview"],["commissions","Commissions"],["volume","Volume"],["zips","By Zip Code"],["sources","Lead Sources"],["monthly","Monthly Activity"]].map(([k,l])=><button key={k} onClick={()=>setTv(k)} style={chip(tv===k)}>{l}</button>)}</div>
       {tv==="overview"&&<div>
         <div className="hb-grid-2" style={{marginBottom:14}}><Section title="Transaction count by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx,f:String(r.tx)}))} color="var(--accent)" h={95}/></Section><Section title="Volume by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))} color="#0891b2" h={95}/></Section></div>
-        <div className="hb-grid-2" style={{}}><Section title="Agent commission trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.agent}))}]} h={130}/></Section><Section title="Listings vs. purchases"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.list}))},{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.buy}))}]} h={110}/><div style={{display:"flex",gap:12,marginTop:6}}>{[["Sell side","var(--accent)"],["Buy side","#0891b2"]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:c}}></span>{l}</span>)}</div></Section></div>
+        <div className="hb-grid-2" style={{}}><Section title="Agent commission trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.agent}))}]} h={130}/></Section><Section title="Listings vs. purchases"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.list}))},{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.buy}))}]} h={110}/><div style={{display:"flex",gap:12,marginTop:6}}>{[["Sell side","var(--accent)"],["Buy side","#0891b2"]].map(([l,c])=><span key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--ink-2)",fontFamily:SANS}}><span style={{width:8,height:8,borderRadius:2,background:c}}></span>{l}</span>)}</div></Section></div>
       </div>}
       {tv==="commissions"&&<div>
         <div className="hb-grid-3" style={{marginBottom:14}}><Card l="Total Agent Comm" v={fmt(yearly.reduce((s,r)=>s+r.agent,0))} accent="#0f7a52"/><Card l="Total Gross Comm" v={fmt(yearly.reduce((s,r)=>s+r.gross,0))}/><Card l="Avg Agent / Transaction" v={fmt(Math.round(yearly.reduce((s,r)=>s+r.agent,0)/Math.max(yearly.reduce((s,r)=>s+r.tx,0),1)))}/></div>
         <Section title="Agent commission by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.agent,f:fmtS(r.agent)}))} color="#0f7a52" h={110}/></Section>
         <Section title="Gross commission by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.gross,f:fmtS(r.gross)}))} color="var(--accent)" h={110}/></Section>
         <Section title="Commission split by year">
-          <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>{["Year","Gross","Agent","Broker","Agent %"].map((h,i)=><th key={h} style={{...thS,textAlign:i?"right":"left"}}>{h}</th>)}</tr></thead>
-            <tbody>{yearly.map(r=><tr key={r.year} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({fontWeight:600})}>{r.year}</td><td style={tdS({textAlign:"right"})}>{fmt(r.gross)}</td><td style={tdS({textAlign:"right",color:"#0f7a52"})}>{fmt(r.agent)}</td><td style={tdS({textAlign:"right",color:"var(--color-text-secondary)"})}>{fmt(r.brok)}</td><td style={tdS({textAlign:"right"})}>{r.gross>0?Math.round(r.agent/r.gross*100):0}%</td></tr>)}</tbody>
-            <tfoot><tr style={{borderTop:"1px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}><td style={tdS({fontWeight:700})}>Total</td><td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(yearly.reduce((s,r)=>s+r.gross,0))}</td><td style={tdS({fontWeight:700,textAlign:"right",color:"#0f7a52"})}>{fmt(yearly.reduce((s,r)=>s+r.agent,0))}</td><td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(yearly.reduce((s,r)=>s+r.brok,0))}</td><td style={tdS()}></td></tr></tfoot>
+          <div className="hb-tablescroll"><table className="hb-rows" style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Year","Gross","Agent","Broker","Agent %"].map((h,i)=><th key={h} style={{...thS,textAlign:i?"right":"left"}}>{h}</th>)}</tr></thead>
+            <tbody>{yearly.map(r=><tr key={r.year} style={{borderBottom:"1px solid var(--line)"}}><td style={tdS({fontWeight:600})}>{r.year}</td><td style={tdS({textAlign:"right"})}>{fmt(r.gross)}</td><td style={tdS({textAlign:"right",color:"#0f7a52"})}>{fmt(r.agent)}</td><td style={tdS({textAlign:"right",color:"var(--ink-2)"})}>{fmt(r.brok)}</td><td style={tdS({textAlign:"right"})}>{r.gross>0?Math.round(r.agent/r.gross*100):0}%</td></tr>)}</tbody>
+            <tfoot><tr style={{borderTop:"1px solid var(--line)",background:"var(--surface-3)"}}><td style={tdS({fontWeight:700})}>Total</td><td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(yearly.reduce((s,r)=>s+r.gross,0))}</td><td style={tdS({fontWeight:700,textAlign:"right",color:"#0f7a52"})}>{fmt(yearly.reduce((s,r)=>s+r.agent,0))}</td><td style={tdS({fontWeight:700,textAlign:"right"})}>{fmt(yearly.reduce((s,r)=>s+r.brok,0))}</td><td style={tdS()}></td></tr></tfoot>
           </table></div>
         </Section>
-        <Section title="Top 15 transactions by agent commission"><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Address","Date","Sale Price","Agent Comm","Type"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{[...hist].sort((a,b)=>(b.agent||0)-(a.agent||0)).slice(0,15).map(r=>{const tc=typeColor(r.type);return <tr key={r.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({fontWeight:500,whiteSpace:"nowrap"})}>{r.address}</td><td style={tdS({color:"var(--color-text-secondary)"})}>{r.date}</td><td style={tdS()}>{fmt(r.price)}</td><td style={tdS({color:"#0f7a52",fontWeight:600})}>{fmt(r.agent)}</td><td style={tdS()}><Pill color={tc}>{r.type||"—"}</Pill></td></tr>;})}</tbody></table></div></Section>
+        <Section title="Top 15 transactions by agent commission"><div className="hb-tablescroll"><table className="hb-rows" style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Address","Date","Sale Price","Agent Comm","Type"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{[...hist].sort((a,b)=>(b.agent||0)-(a.agent||0)).slice(0,15).map(r=>{const tc=typeColor(r.type);return <tr key={r.id} style={{borderBottom:"1px solid var(--line)"}}><td style={tdS({fontWeight:500,whiteSpace:"nowrap"})}>{r.address}</td><td style={tdS({color:"var(--ink-2)"})}>{r.date}</td><td style={tdS()}>{fmt(r.price)}</td><td style={tdS({color:"#0f7a52",fontWeight:600})}>{fmt(r.agent)}</td><td style={tdS()}><Pill color={tc}>{r.type||"—"}</Pill></td></tr>;})}</tbody></table></div></Section>
       </div>}
       {tv==="volume"&&<div><Section title="Volume trend"><Line series={[{data:yearly.map(r=>({l:String(r.year).slice(2),v:r.vol}))}]} h={160}/></Section><Section title="Average sale price by year"><Bar data={yearly.map(r=>({l:String(r.year).slice(2),v:r.tx>0?Math.round(r.vol/r.tx):0}))} color="#d97706" h={100}/></Section></div>}
       {tv==="zips"&&<div>
         <div className="hb-grid-3" style={{marginBottom:14}}><Card l="Unique Zip Codes" v={zipSt.length.toString()}/><Card l="Top Zip" v={zipSt[0]?.zip||"—"} accent="var(--accent)"/><Card l="Top Zip Volume" v={fmtS(zipSt[0]?.vol||0)}/></div>
         <Section title="Transaction count by zip code (top 12)"><Bar data={zipSt.slice(0,12).map(r=>({l:r.zip,v:r.count,f:String(r.count)}))} color="#7c3aed" h={100}/></Section>
-        <Section title="All zip code breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Zip","Transactions","Total Volume","Agent Comm","Avg Sale Price"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{zipSt.map(z=><tr key={z.zip} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({fontWeight:600,color:"var(--accent)"})}>{z.zip}</td><td style={tdS()}>{z.count}</td><td style={tdS()}>{fmtS(z.vol)}</td><td style={tdS({color:"#0f7a52"})}>{fmt(z.agent)}</td><td style={tdS()}>{fmt(Math.round(z.vol/z.count))}</td></tr>)}</tbody></table></Section>
+        <Section title="All zip code breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Zip","Transactions","Total Volume","Agent Comm","Avg Sale Price"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{zipSt.map(z=><tr key={z.zip} style={{borderBottom:"1px solid var(--line)"}}><td style={tdS({fontWeight:600,color:"var(--accent)"})}>{z.zip}</td><td style={tdS()}>{z.count}</td><td style={tdS()}>{fmtS(z.vol)}</td><td style={tdS({color:"#0f7a52"})}>{fmt(z.agent)}</td><td style={tdS()}>{fmt(Math.round(z.vol/z.count))}</td></tr>)}</tbody></table></Section>
       </div>}
       {tv==="sources"&&<div>
-        <div className="hb-grid-2" style={{marginBottom:14}}><Section title="Transaction share by source"><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><Donut segs={srcSt.map(s=>({v:s.count}))} size={130}/><div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:10}}>{srcSt.map((s,i)=><span key={s.src} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length]}}></span>{s.src||"Unknown"} ({s.count})</span>)}</div></div></Section><Section title="Agent commission by source"><Bar data={srcSt.slice(0,6).map(s=>({l:s.src.split(" ")[0].slice(0,6),v:s.agent}))} color="#db2777" h={100}/></Section></div>
-        <Section title="Full lead source breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>{["Source","Transactions","Agent Comm","Avg Comm/Deal"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{srcSt.map((s,i)=><tr key={s.src} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={tdS({display:"flex",alignItems:"center",gap:6})}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length],flexShrink:0}}></span><span style={{fontWeight:500}}>{s.src||"Unknown"}</span></td><td style={tdS()}>{s.count}</td><td style={tdS({color:"#0f7a52"})}>{fmt(s.agent)}</td><td style={tdS()}>{fmt(Math.round(s.agent/s.count))}</td></tr>)}</tbody></table></Section>
+        <div className="hb-grid-2" style={{marginBottom:14}}><Section title="Transaction share by source"><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><Donut segs={srcSt.map(s=>({v:s.count}))} size={130}/><div style={{display:"flex",flexWrap:"wrap",gap:"6px 12px",marginTop:10}}>{srcSt.map((s,i)=><span key={s.src} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--ink-2)",fontFamily:SANS}}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length]}}></span>{s.src||"Unknown"} ({s.count})</span>)}</div></div></Section><Section title="Agent commission by source"><Bar data={srcSt.slice(0,6).map(s=>({l:s.src.split(" ")[0].slice(0,6),v:s.agent}))} color="#db2777" h={100}/></Section></div>
+        <Section title="Full lead source breakdown"><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Source","Transactions","Agent Comm","Avg Comm/Deal"].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead><tbody>{srcSt.map((s,i)=><tr key={s.src} style={{borderBottom:"1px solid var(--line)"}}><td style={tdS({display:"flex",alignItems:"center",gap:6})}><span style={{width:8,height:8,borderRadius:2,background:CC[i%CC.length],flexShrink:0}}></span><span style={{fontWeight:500}}>{s.src||"Unknown"}</span></td><td style={tdS()}>{s.count}</td><td style={tdS({color:"#0f7a52"})}>{fmt(s.agent)}</td><td style={tdS()}>{fmt(Math.round(s.agent/s.count))}</td></tr>)}</tbody></table></Section>
       </div>}
       {tv==="monthly"&&<div>
         <div className="hb-grid-3" style={{marginBottom:14}}>{(()=>{const best=monthly.reduce((a,b)=>b.agent>a.agent?b:a,{l:"—",agent:0});const busy=monthly.reduce((a,b)=>b.count>a.count?b:a,{l:"—",count:0});return[<Card key="1" l="Best Month (Comm)" v={best.l} accent="#0f7a52"/>,<Card key="2" l="Busiest Month (Volume)" v={busy.l} accent="var(--accent)"/>,<Card key="3" l="Avg Trans/Month" v={(hist.length/12).toFixed(1)}/>];})()}</div>
@@ -1511,7 +1521,7 @@ function CommissionsView({hist,escrow,saveHist,saveEscrow}) {
     </div>
 
     {seq.length===0?<div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,padding:"10px 0"}}>No tagged {year} deals yet. Tag deals as In House / Out of House (below, in the pipeline detail panel, or in Sales History) to populate the cap tracker.</div>:
-    <div style={{overflowX:"auto",border:"1px solid #b4afa1",marginBottom:16}}><table style={{borderCollapse:"collapse",minWidth:"100%"}}>
+    <div className="hb-tablescroll" style={{border:"1px solid var(--line-3)",marginBottom:16}}><table className="hb-rows" style={{borderCollapse:"collapse",minWidth:"100%"}}>
       <thead><tr>
         <th style={th}>Close</th><th style={th}>Address</th><th style={th}>Stage</th><th style={th}>Type</th>
         <th style={{...th,textAlign:"right"}}>Gross</th><th style={{...th,textAlign:"right"}}>Fees</th><th style={{...th,textAlign:"right"}}>Base</th>
@@ -1801,7 +1811,7 @@ function TransactionCalendar({escrow}) {
         <span style={{width:8,height:8,borderRadius:"50%",background:on?CONTINGENCY_COLORS[c.key]:"#c5c2b8"}}/>{c.short}</button>;})}
     </div>
 
-    {view==="month"&&<div style={{border:"1px solid #b4afa1"}}>
+    {view==="month"&&<div style={{border:"1px solid var(--line-3)"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
         {DOW.map(d=><div key={d} style={{...thS,textAlign:"center",borderLeft:"1px solid var(--line)"}}>{d}</div>)}
       </div>
@@ -1816,7 +1826,7 @@ function TransactionCalendar({escrow}) {
       </div>
     </div>}
 
-    {view==="week"&&<div style={{border:"1px solid #b4afa1",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+    {view==="week"&&<div style={{border:"1px solid var(--line-3)",display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
       {weekCells.map((d,i)=>{const evs=evtsOn(d);const isToday=sameDay(d,today);return <div key={i} style={{...cellBase,minHeight:240}}>
         <div style={{textAlign:"center",padding:"6px 0",borderBottom:"1px solid var(--line)",background:isToday?"var(--accent)":"var(--surface-3)"}}>
           <div style={{fontFamily:SANS,fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em",color:isToday?"#cfcbea":"var(--ink-2)"}}>{DOW[d.getDay()]}</div>
@@ -1826,7 +1836,7 @@ function TransactionCalendar({escrow}) {
       </div>;})}
     </div>}
 
-    {view==="day"&&<div style={{border:"1px solid #b4afa1",background:"#fff",padding:16,minHeight:160}}>
+    {view==="day"&&<div style={{border:"1px solid var(--line-3)",background:"#fff",padding:16,minHeight:160}}>
       {(()=>{const evs=evtsOn(cursor);if(!evs.length)return <div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,textAlign:"center",padding:"24px 0"}}>No contingency deadlines on this day.</div>;
         return <div style={{display:"flex",flexDirection:"column",gap:8}}>{evs.map((e,j)=><div key={j} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",border:"1px solid var(--line)",borderLeft:`4px solid ${e.done?"#9bb3a4":CONTINGENCY_COLORS[e.key]}`,background:e.done?"#f1f4f1":"var(--surface-2)",opacity:e.done?0.75:1}}>
           <div style={{fontFamily:SERIF,fontWeight:700,fontSize:15,color:"var(--ink)",minWidth:150,textDecoration:e.done?"line-through":"none"}}>{e.addr}</div>
@@ -1859,6 +1869,16 @@ function netAdj(cma,comp,adjLib){ return cmaRows(cma).reduce((s,r)=>s+rowAdj(cma
 function adjustedPrice(cma,comp,adjLib){ return (+comp.salePrice||0)+netAdj(cma,comp,adjLib); }
 function compPPSF(comp){ const g=parseFloat(comp.val?.gla)||0; return g>0?Math.round((+comp.salePrice||0)/g):0; }
 
+// The stored `suggested` is only written when a CMA is saved through the
+// editor, so a CMA that predates that (or was seeded) reads blank in the
+// library while the detail view computes a figure from the same comps.
+// Derive it the way the detail view does; fall back to the stored value.
+function cmaSuggested(cma, adjLib){
+  const comps=cma.comps||[];
+  if(comps.length) return median(comps.map(c=>adjustedPrice(cma,c,adjLib)));
+  return +cma.suggested||0;
+}
+
 function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,saveProfile,addrOptions,onPromote}) {
   const S=useSettings(); const CSTAT=names(S.cmaStatuses); const cmaColors=colorMap(S.cmaStatuses);
   const [tab,setTab]=useState("library");
@@ -1883,12 +1903,12 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
     rows.sort((a,b)=>{
       if(sort==="date") return parseDate(b.date)-parseDate(a.date);
       if(sort==="subject") return (a.subject||"").localeCompare(b.subject||"");
-      if(sort==="value") return (b.suggested||0)-(a.suggested||0);
+      if(sort==="value") return cmaSuggested(b,adjLib)-cmaSuggested(a,adjLib);
       if(sort==="status") return CSTAT.indexOf(a.status||"Draft")-CSTAT.indexOf(b.status||"Draft");
       return 0;
     });
     return rows;
-  },[cmas,statusFilter,search,sort]);
+  },[cmas,statusFilter,search,sort,adjLib]);
   const statusCounts=useMemo(()=>{const m={};cmas.forEach(c=>{const s=c.status||"Draft";m[s]=(m[s]||0)+1;});return m;},[cmas]);
   const adjusted=useMemo(()=>activeComps(b).map(c=>adjustedPrice(b,c,adjLib)),[b,adjLib]);
   const summary=useMemo(()=>{
@@ -1953,29 +1973,29 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
     const isOpen = picker&&picker.who===who&&picker.key===row.key;
     return <div>
       <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:3}}>
-        {selected.length===0&&<span style={{fontSize:10,color:"var(--color-text-tertiary)",fontFamily:"sans-serif"}}>none</span>}
-        {selected.map(id=><span key={id} style={{fontSize:9,padding:"1px 5px",borderRadius:8,background:"#e0e7ff",color:"#3730a3",fontFamily:"sans-serif"}}>{featName(adjLib,id)}</span>)}
+        {selected.length===0&&<span style={{fontSize:10,color:"var(--ink-3)",fontFamily:SANS}}>none</span>}
+        {selected.map(id=><span key={id} style={{fontSize:9,padding:"1px 5px",borderRadius:8,background:"#e0e7ff",color:"#3730a3",fontFamily:SANS}}>{featName(adjLib,id)}</span>)}
       </div>
       <button onClick={()=>setPicker(isOpen?null:{who,key:row.key})} style={{...btnGhost,fontSize:10,padding:"2px 7px"}}>{isOpen?"Done":"Select ▾"}</button>
-      {isOpen&&<div style={{marginTop:4,padding:6,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}>
-        {items.length===0&&<div style={{fontSize:10,color:"var(--color-text-tertiary)",fontFamily:"sans-serif"}}>No values in {row.cat}.</div>}
-        {items.map(a=><label key={a.id} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,fontFamily:"sans-serif",padding:"2px 0",cursor:"pointer"}}>
+      {isOpen&&<div style={{marginTop:4,padding:6,background:"var(--surface)",border:"1px solid var(--line-2)",borderRadius:6}}>
+        {items.length===0&&<div style={{fontSize:10,color:"var(--ink-3)",fontFamily:SANS}}>No values in {row.cat}.</div>}
+        {items.map(a=><label key={a.id} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,fontFamily:SANS,padding:"2px 0",cursor:"pointer"}}>
           <input type="checkbox" checked={selected.includes(a.id)} onChange={()=>toggleSel(who,row.key,a.id)} style={{margin:0}}/>
-          <span style={{flex:1}}>{a.name}</span><span style={{color:"var(--color-text-secondary)"}}>{fmt(a.value)}</span>
+          <span style={{flex:1}}>{a.name}</span><span style={{color:"var(--ink-2)"}}>{fmt(a.value)}</span>
         </label>)}
       </div>}
     </div>;
   };
 
   return <div>
-    <div style={{display:"flex",borderBottom:"1px solid #b4afa1",marginBottom:18,overflowX:"auto"}}>
+    <div style={{display:"flex",borderBottom:"1px solid var(--line-3)",marginBottom:18,overflowX:"auto"}}>
       {[["library","CMA Library"],["build",editId?"Edit CMA":"New CMA"],["adj","Adjustment Values"]].map(([k,l])=><button key={k} onClick={()=>{setTab(k);if(k==="build"&&!editId)setB(blank());}} style={subTab(tab===k)}>{l}</button>)}
     </div>
 
     {tab==="library"&&<div>
       <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-        <input placeholder="Search subject, client, zip…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:180,padding:"7px 12px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}/>
-        <select value={sort} onChange={e=>setSort(e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>
+        <input placeholder="Search subject, client, zip…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:180,padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}/>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}>
           <option value="date">Sort: Newest</option><option value="subject">Sort: Address A–Z</option><option value="value">Sort: Suggested value</option><option value="status">Sort: Status</option>
         </select>
         <button onClick={()=>{setB(blank());setEditId(null);setTab("build");}} style={{...btnGhost,background:"var(--accent)",color:"#fff",border:"none",padding:"7px 14px"}}>+ New CMA</button>
@@ -1984,27 +2004,27 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
         <button onClick={()=>setStatusFilter("All")} style={chip(statusFilter==="All")}>All ({cmas.length})</button>
         {CSTAT.map(s=><button key={s} onClick={()=>setStatusFilter(s)} style={chip(statusFilter===s)}>{s} ({statusCounts[s]||0})</button>)}
       </div>
-      {fC.length===0&&<div style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",padding:"30px 0",textAlign:"center"}}>{cmas.length===0?<>No CMAs yet. Click <strong>+ New CMA</strong> to build one.</>:"No CMAs match these filters."}</div>}
+      {fC.length===0&&<div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,padding:"30px 0",textAlign:"center"}}>{cmas.length===0?<>No CMAs yet. Click <strong>+ New CMA</strong> to build one.</>:"No CMAs match these filters."}</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
-        {fC.map(c=>{const sc=cmaColors[c.status||"Draft"]||{bg:"#eee",text:"#555"};return <div key={c.id} onClick={()=>setOpen(c.id)} className="hb-hover" style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:12,padding:16,cursor:"pointer",borderLeft:`3px solid ${sc.text}`}}>
+        {fC.map(c=>{const sc=cmaColors[c.status||"Draft"]||{bg:"#eee",text:"#555"};return <div key={c.id} onClick={()=>setOpen(c.id)} className="hb-hover" style={{background:"var(--surface)",border:"1px solid var(--line)",borderRadius:12,padding:16,cursor:"pointer",borderLeft:`3px solid ${sc.text}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-            <div style={{fontWeight:600,fontSize:14,color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>{c.subject}</div>
+            <div style={{fontWeight:600,fontSize:14,color:"var(--ink)",fontFamily:SANS}}>{c.subject}</div>
             <Pill color={sc}>{c.status||"Draft"}</Pill>
           </div>
-          <div style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginBottom:10}}>{c.client||"—"} · {c.zip||"—"} · {c.date}</div>
+          <div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS,marginBottom:10}}>{c.client||"—"} · {c.zip||"—"} · {c.date}</div>
           <div style={{display:"flex",gap:16}}>
-            <div><div style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",textTransform:"uppercase"}}>List / Target</div><div style={{fontSize:15,fontWeight:600,fontFamily:"sans-serif"}}>{c.listPrice?fmt(c.listPrice):"—"}</div></div>
-            <div><div style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",textTransform:"uppercase"}}>Suggested</div><div style={{fontSize:15,fontWeight:600,color:"#0f7a52",fontFamily:"sans-serif"}}>{c.suggested?fmt(c.suggested):"—"}</div></div>
+            <div><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase"}}>List / Target</div><div style={{fontSize:15,fontWeight:600,fontFamily:SANS}}>{c.listPrice?fmt(c.listPrice):"—"}</div></div>
+            <div><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase"}}>Suggested</div><div style={{fontSize:15,fontWeight:600,color:"#0f7a52",fontFamily:SANS}}>{(()=>{const sg=cmaSuggested(c,adjLib);return sg?fmt(sg):"—";})()}</div></div>
           </div>
-          <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginTop:8}}>{c.comps?.length||0} comps · {cmaRows(c).length} rows</div>
+          <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:8}}>{c.comps?.length||0} comps · {cmaRows(c).length} rows</div>
         </div>;})}
       </div>
 
-      {openCma&&<div style={{marginTop:20,background:"var(--color-background-secondary)",borderRadius:12,padding:20,border:"0.5px solid var(--color-border-secondary)"}}>
+      {openCma&&<div style={{marginTop:20,background:"var(--surface-3)",borderRadius:12,padding:20,border:"1px solid var(--line-2)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,gap:10,flexWrap:"wrap"}}>
-          <div><div style={{fontSize:17,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-primary)"}}>{openCma.subject}</div><div style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}>{openCma.client||"—"} · {openCma.zip} · {openCma.date}</div></div>
+          <div><div style={{fontSize:17,fontWeight:600,fontFamily:SANS,color:"var(--ink)"}}>{openCma.subject}</div><div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS}}>{openCma.client||"—"} · {openCma.zip} · {openCma.date}</div></div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <select value={openCma.status||"Draft"} onChange={e=>setStatus(openCma.id,e.target.value)} style={{padding:"6px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}>
+            <select value={openCma.status||"Draft"} onChange={e=>setStatus(openCma.id,e.target.value)} style={{padding:"6px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}>
               {CSTAT.map(s=><option key={s}>{s}</option>)}
             </select>
             <button onClick={()=>setReportId(openCma.id)} style={{...btnGhost,borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Export PDF</button>
@@ -2024,28 +2044,28 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
               <Card l="Implied $/SF" v={subjGla>0?`$${Math.round(med/subjGla)}`:"—"}/>
             </div>
           );})()}
-          <div style={{overflowX:"auto"}}><table style={{borderCollapse:"collapse",fontSize:11,fontFamily:"sans-serif",minWidth:"100%"}}>
-            <thead><tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
-              <th style={{...thS,position:"sticky",left:0,background:"var(--color-background-secondary)"}}>Specs</th>
+          <div className="hb-tablescroll"><table className="hb-rows" style={{borderCollapse:"collapse",fontSize:11,fontFamily:SANS,minWidth:"100%"}}>
+            <thead><tr style={{borderBottom:"1px solid var(--line)"}}>
+              <th style={{...thS,position:"sticky",left:0,background:"var(--surface-3)"}}>Specs</th>
               <th style={thS}>Subject</th>
               {openCma.comps.map(cp=><th key={cp.id} style={{...thS,minWidth:130}}>{cp.address||"Comp"}</th>)}
             </tr></thead>
             <tbody>
-              <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Sale Price</td><td style={tdS()}>—</td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({fontWeight:600})}>{fmt(cp.salePrice)}</td>)}</tr>
-              <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Date / $SF</td><td style={tdS({color:"var(--color-text-secondary)"})}>{openCma.subj.gla} sf</td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({color:"var(--color-text-secondary)"})}>{cp.saleDate} · ${compPPSF(cp)}</td>)}</tr>
-              {cmaRows(openCma).map(r=><tr key={r.key} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                <td style={{...tdS({position:"sticky",left:0,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)"})}}>{r.label}{r.kind==="category"&&<span style={{marginLeft:4,fontSize:9,color:"var(--accent)"}}>auto</span>}</td>
+              <tr style={{borderBottom:"1px solid var(--line)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Sale Price</td><td style={tdS()}>—</td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({fontWeight:600})}>{fmt(cp.salePrice)}</td>)}</tr>
+              <tr style={{borderBottom:"1px solid var(--line)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Date / $SF</td><td style={tdS({color:"var(--ink-2)"})}>{openCma.subj.gla} sf</td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({color:"var(--ink-2)"})}>{cp.saleDate} · ${compPPSF(cp)}</td>)}</tr>
+              {cmaRows(openCma).map(r=><tr key={r.key} style={{borderBottom:"1px solid var(--line)"}}>
+                <td style={{...tdS({position:"sticky",left:0,background:"var(--surface-3)",color:"var(--ink-2)"})}}>{r.label}{r.kind==="category"&&<span style={{marginLeft:4,fontSize:9,color:"var(--accent)"}}>auto</span>}</td>
                 <td style={tdS()}>{r.kind==="category"?(openCma.subj?.sel?.[r.key]||[]).map(id=>featName(adjLib,id)).join(", ")||"—":(openCma.subj[r.key]||"—")}</td>
                 {openCma.comps.map(cp=>{const a=rowAdj(openCma,cp,r,adjLib);const v=r.kind==="category"?((cp.sel?.[r.key]||[]).map(id=>featName(adjLib,id)).join(", ")||"—"):(cp.val?.[r.key]||"—");return <td key={cp.id} style={tdS()}><div>{v}</div>{a!==0&&<div style={{fontSize:10,color:a<0?"#dc2626":"#0f7a52"}}>{a<0?"":"+"}{fmt(a)}</div>}</td>;})}
               </tr>)}
-              <tr style={{borderTop:"1px solid var(--color-border-tertiary)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Net Adjustment</td><td style={tdS()}></td>{openCma.comps.map(cp=>{const n=netAdj(openCma,cp,adjLib);return <td key={cp.id} style={tdS({fontWeight:500,color:n<0?"#dc2626":"#0f7a52"})}>{n<0?"":"+"}{fmt(n)}</td>;})}</tr>
-              <tr style={{background:"var(--color-background-primary)"}}><td style={{...tdS({fontWeight:700,position:"sticky",left:0,background:"var(--color-background-primary)"})}}>Adjusted Price</td><td style={tdS()}></td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({fontWeight:700,color:"#0f7a52"})}>{fmt(adjustedPrice(openCma,cp,adjLib))}</td>)}</tr>
+              <tr style={{borderTop:"1px solid var(--line)"}}><td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Net Adjustment</td><td style={tdS()}></td>{openCma.comps.map(cp=>{const n=netAdj(openCma,cp,adjLib);return <td key={cp.id} style={tdS({fontWeight:500,color:n<0?"#dc2626":"#0f7a52"})}>{n<0?"":"+"}{fmt(n)}</td>;})}</tr>
+              <tr style={{background:"var(--surface)"}}><td style={{...tdS({fontWeight:700,position:"sticky",left:0,background:"var(--surface)"})}}>Adjusted Price</td><td style={tdS()}></td>{openCma.comps.map(cp=><td key={cp.id} style={tdS({fontWeight:700,color:"#0f7a52"})}>{fmt(adjustedPrice(openCma,cp,adjLib))}</td>)}</tr>
             </tbody>
           </table></div>
         </>}
-        {openCma.photosLink&&<div style={{marginTop:12,fontSize:13,fontFamily:SANS}}><span style={{color:"var(--color-text-secondary)"}}>Photos: </span><a href={openCma.photosLink} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",fontWeight:600,wordBreak:"break-all"}}>{openCma.photosLink}</a></div>}
-        {openCma.compsLink&&<div style={{marginTop:6,fontSize:13,fontFamily:SANS}}><span style={{color:"var(--color-text-secondary)"}}>Comps (MLS): </span><a href={openCma.compsLink} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",fontWeight:600,wordBreak:"break-all"}}>{openCma.compsLink}</a></div>}
-        {openCma.notes&&<div style={{fontSize:13,fontFamily:"sans-serif",color:"var(--color-text-primary)",background:"var(--color-background-primary)",borderRadius:8,padding:12,lineHeight:1.6,marginTop:12}}>{openCma.notes}</div>}
+        {openCma.photosLink&&<div style={{marginTop:12,fontSize:13,fontFamily:SANS}}><span style={{color:"var(--ink-2)"}}>Photos: </span><a href={openCma.photosLink} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",fontWeight:600,wordBreak:"break-all"}}>{openCma.photosLink}</a></div>}
+        {openCma.compsLink&&<div style={{marginTop:6,fontSize:13,fontFamily:SANS}}><span style={{color:"var(--ink-2)"}}>Comps (MLS): </span><a href={openCma.compsLink} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",fontWeight:600,wordBreak:"break-all"}}>{openCma.compsLink}</a></div>}
+        {openCma.notes&&<div style={{fontSize:13,fontFamily:SANS,color:"var(--ink)",background:"var(--surface)",borderRadius:8,padding:12,lineHeight:1.6,marginTop:12}}>{openCma.notes}</div>}
       </div>}
     </div>}
 
@@ -2069,29 +2089,29 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
           <div style={{marginTop:8}}>
             <ImagePicker label="Cover photo — upload" hint="Recommended: uploads always work in the PDF" value={(b.heroPhoto||"").startsWith("data:")?b.heroPhoto:""} onChange={v=>setB(p=>({...p,heroPhoto:v}))} maxW={1400} quality={0.72} boxH={70}/>
           </div>
-          <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:SANS,marginTop:6,lineHeight:1.5}}>Uploading is the reliable option. A pasted link shows in the preview, but most photo hosts block copying, which stops it from being embedded in the downloaded PDF.</div>
+          <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:6,lineHeight:1.5}}>Uploading is the reliable option. A pasted link shows in the preview, but most photo hosts block copying, which stops it from being embedded in the downloaded PDF.</div>
         </div>
       </Section>
 
       <>
-        <div style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14,marginBottom:14,border:"0.5px solid var(--color-border-tertiary)"}}>
+        <div style={{background:"var(--surface-3)",borderRadius:10,padding:14,marginBottom:14,border:"1px solid var(--line)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onClick={()=>setShowRows(s=>!s)}>
-            <div style={{fontSize:12,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-primary)"}}>Comparison rows <span style={{color:"var(--color-text-secondary)",fontWeight:400}}>({b.rows.length} active)</span></div>
-            <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>{showRows?"▴ hide":"▾ configure"}</span>
+            <div style={{fontSize:12,fontWeight:600,fontFamily:SANS,color:"var(--ink)"}}>Comparison rows <span style={{color:"var(--ink-2)",fontWeight:400}}>({b.rows.length} active)</span></div>
+            <span style={{fontSize:12,color:"var(--ink-2)"}}>{showRows?"▴ hide":"▾ configure"}</span>
           </div>
           {showRows&&<div style={{marginTop:12}}>
-            <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginBottom:8}}>Toggle which rows appear in the grid. <strong>Category rows</strong> (tagged) pull selectable features and dollar values from your Adjustment Values library and auto-compute the adjustment.</div>
+            <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginBottom:8}}>Toggle which rows appear in the grid. <strong>Category rows</strong> (tagged) pull selectable features and dollar values from your Adjustment Values library and auto-compute the adjustment.</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-              {candidateRows.map(cand=>{const on=rowIncluded(cand.key);return <button key={cand.key} onClick={()=>toggleRow(cand)} style={{fontSize:11,padding:"4px 11px",borderRadius:16,border:"0.5px solid",fontFamily:"sans-serif",cursor:"pointer",background:on?"var(--accent)":"transparent",color:on?"#fff":"var(--color-text-secondary)",borderColor:on?"var(--accent)":"var(--color-border-tertiary)"}}>{on?"✓ ":""}{cand.label}{cand.kind==="category"&&<span style={{marginLeft:4,fontSize:9,opacity:0.8}}>· auto</span>}</button>;})}
+              {candidateRows.map(cand=>{const on=rowIncluded(cand.key);return <button key={cand.key} onClick={()=>toggleRow(cand)} style={{fontSize:11,padding:"4px 11px",borderRadius:16,border:"1px solid",fontFamily:SANS,cursor:"pointer",background:on?"var(--accent)":"transparent",color:on?"#fff":"var(--ink-2)",borderColor:on?"var(--accent)":"var(--line)"}}>{on?"✓ ":""}{cand.label}{cand.kind==="category"&&<span style={{marginLeft:4,fontSize:9,opacity:0.8}}>· auto</span>}</button>;})}
             </div>
           </div>}
         </div>
 
         <Section title="Comparable grid">
-          <div style={{overflowX:"auto"}}><table style={{borderCollapse:"collapse",fontSize:11,fontFamily:"sans-serif"}}>
+          <div className="hb-tablescroll"><table className="hb-rows" style={{borderCollapse:"collapse",fontSize:11,fontFamily:SANS}}>
             <thead>
-              <tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>
-                <th style={{...thS,position:"sticky",left:0,background:"var(--color-background-secondary)",minWidth:130}}>Specs</th>
+              <tr style={{borderBottom:"1px solid var(--line)"}}>
+                <th style={{...thS,position:"sticky",left:0,background:"var(--surface-3)",minWidth:130}}>Specs</th>
                 <th style={{...thS,minWidth:130}}>Subject</th>
                 {b.comps.map(cp=><th key={cp.id} style={{...thS,minWidth:170,background:cp.excluded?"#f1e8e4":thS.background}}><div style={{display:"flex",alignItems:"center",gap:5}}>
                   <label title={cp.excluded?"Excluded — not counted in stats or the PDF. Check to include.":"Included in stats and the PDF. Uncheck to exclude without deleting."} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",flex:1,minWidth:0}}>
@@ -2102,23 +2122,23 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
               </tr>
             </thead>
             <tbody>
-              <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Address</td>
+              <tr style={{borderBottom:"1px solid var(--line)"}}>
+                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Address</td>
                 <td style={tdS()}>{inp(b.subject,v=>setB(p=>({...p,subject:v})),"Subject")}</td>
                 {b.comps.map(cp=><td key={cp.id} style={tdS()}>{inp(cp.address,v=>setCompField(cp.id,"address",v),"Comp address")}</td>)}
               </tr>
-              <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Sale Price</td>
-                <td style={tdS({color:"var(--color-text-secondary)"})}>—</td>
+              <tr style={{borderBottom:"1px solid var(--line)"}}>
+                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Sale Price</td>
+                <td style={tdS({color:"var(--ink-2)"})}>—</td>
                 {b.comps.map(cp=><td key={cp.id} style={tdS()}>{inp(cp.salePrice,v=>setCompField(cp.id,"salePrice",v),"$","number")}</td>)}
               </tr>
-              <tr style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
-                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Date / $SF</td>
-                <td style={tdS({color:"var(--color-text-secondary)"})}>{parseFloat(b.subj.gla)>0?`${b.subj.gla} sf`:"—"}</td>
-                {b.comps.map(cp=><td key={cp.id} style={tdS()}>{inp(cp.saleDate,v=>setCompField(cp.id,"saleDate",v),"m/d/y")}<div style={{fontSize:10,color:"var(--color-text-secondary)",marginTop:2}}>${compPPSF(cp)}/sf</div></td>)}
+              <tr style={{borderBottom:"1px solid var(--line)"}}>
+                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Date / $SF</td>
+                <td style={tdS({color:"var(--ink-2)"})}>{parseFloat(b.subj.gla)>0?`${b.subj.gla} sf`:"—"}</td>
+                {b.comps.map(cp=><td key={cp.id} style={tdS()}>{inp(cp.saleDate,v=>setCompField(cp.id,"saleDate",v),"m/d/y")}<div style={{fontSize:10,color:"var(--ink-2)",marginTop:2}}>${compPPSF(cp)}/sf</div></td>)}
               </tr>
-              {b.rows.map(r=><tr key={r.key} style={{borderBottom:"0.5px solid var(--color-border-tertiary)",verticalAlign:"top"}}>
-                <td style={{...tdS({position:"sticky",left:0,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)"})}}>{r.label}{r.kind==="category"&&<div style={{fontSize:9,color:"var(--accent)"}}>auto · {r.cat}</div>}</td>
+              {b.rows.map(r=><tr key={r.key} style={{borderBottom:"1px solid var(--line)",verticalAlign:"top"}}>
+                <td style={{...tdS({position:"sticky",left:0,background:"var(--surface-3)",color:"var(--ink-2)"})}}>{r.label}{r.kind==="category"&&<div style={{fontSize:9,color:"var(--accent)"}}>auto · {r.cat}</div>}</td>
                 {/* subject cell */}
                 <td style={tdS()}>{r.kind==="category"?<CatPicker who="subj" row={r}/>:inp(b.subj[r.key],v=>setSubj(r.key,v),r.num?"sqft":"value")}</td>
                 {/* comp cells */}
@@ -2130,24 +2150,24 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
                       <CatPicker who={cp.id} row={r}/>
                       <div style={{marginTop:4,display:"flex",alignItems:"center",gap:4}}>
                         {auto
-                          ? <><span style={{fontSize:11,fontWeight:600,color:a<0?"#dc2626":a>0?"#0f7a52":"var(--color-text-secondary)"}}>{a<0?"":"+"}{fmt(a)}</span><button onClick={()=>setCompAdj(cp.id,r.key,a)} style={{...btnGhost,fontSize:9,padding:"1px 5px"}}>override</button></>
-                          : <><input type="number" value={cp.adj[r.key]||""} onChange={e=>setCompAdj(cp.id,r.key,e.target.value)} style={{padding:"3px 6px",fontSize:11,borderRadius:5,border:"1px solid #d97706",background:"var(--color-background-primary)",color:(cp.adj[r.key]||0)<0?"#dc2626":"#0f7a52",width:80,fontFamily:"sans-serif"}}/><button onClick={()=>revertAuto(cp.id,r.key)} style={{...btnGhost,fontSize:9,padding:"1px 5px"}}>↻ auto</button></>}
+                          ? <><span style={{fontSize:11,fontWeight:600,color:a<0?"#dc2626":a>0?"#0f7a52":"var(--ink-2)"}}>{a<0?"":"+"}{fmt(a)}</span><button onClick={()=>setCompAdj(cp.id,r.key,a)} style={{...btnGhost,fontSize:9,padding:"1px 5px"}}>override</button></>
+                          : <><input type="number" value={cp.adj[r.key]||""} onChange={e=>setCompAdj(cp.id,r.key,e.target.value)} style={{padding:"3px 6px",fontSize:11,borderRadius:5,border:"1px solid #d97706",background:"var(--surface)",color:(cp.adj[r.key]||0)<0?"#dc2626":"#0f7a52",width:80,fontFamily:SANS}}/><button onClick={()=>revertAuto(cp.id,r.key)} style={{...btnGhost,fontSize:9,padding:"1px 5px"}}>↻ auto</button></>}
                       </div>
                     </td>;
                   }
                   return <td key={cp.id} style={tdS()}>
                     {inp(cp.val[r.key],v=>setCompVal(cp.id,r.key,v),r.num?"sqft":"value")}
-                    <div style={{marginTop:3}}><input type="number" value={cp.adj[r.key]||""} placeholder="adj $" onChange={e=>setCompAdj(cp.id,r.key,e.target.value)} style={{padding:"4px 7px",fontSize:11,borderRadius:5,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:(cp.adj[r.key]||0)<0?"#dc2626":(cp.adj[r.key]||0)>0?"#0f7a52":"var(--color-text-primary)",fontFamily:"sans-serif",width:"100%",boxSizing:"border-box"}}/></div>
+                    <div style={{marginTop:3}}><input type="number" value={cp.adj[r.key]||""} placeholder="adj $" onChange={e=>setCompAdj(cp.id,r.key,e.target.value)} style={{padding:"4px 7px",fontSize:11,borderRadius:5,border:"1px solid var(--line)",background:"var(--surface)",color:(cp.adj[r.key]||0)<0?"#dc2626":(cp.adj[r.key]||0)>0?"#0f7a52":"var(--ink)",fontFamily:SANS,width:"100%",boxSizing:"border-box"}}/></div>
                   </td>;
                 })}
               </tr>)}
-              <tr style={{borderTop:"1px solid var(--color-border-tertiary)"}}>
-                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--color-background-secondary)"})}}>Net Adjustment</td>
+              <tr style={{borderTop:"1px solid var(--line)"}}>
+                <td style={{...tdS({fontWeight:600,position:"sticky",left:0,background:"var(--surface-3)"})}}>Net Adjustment</td>
                 <td style={tdS()}></td>
                 {b.comps.map(cp=>{const n=netAdj(b,cp,adjLib);return <td key={cp.id} style={tdS({fontWeight:500,color:n<0?"#dc2626":"#0f7a52"})}>{n<0?"":"+"}{fmt(n)}</td>;})}
               </tr>
-              <tr style={{background:"var(--color-background-primary)"}}>
-                <td style={{...tdS({fontWeight:700,position:"sticky",left:0,background:"var(--color-background-primary)"})}}>Adjusted Price</td>
+              <tr style={{background:"var(--surface)"}}>
+                <td style={{...tdS({fontWeight:700,position:"sticky",left:0,background:"var(--surface)"})}}>Adjusted Price</td>
                 <td style={tdS()}></td>
                 {b.comps.map(cp=><td key={cp.id} style={tdS({fontWeight:700,color:"#0f7a52"})}>{fmt(adjustedPrice(b,cp,adjLib))}</td>)}
               </tr>
@@ -2156,17 +2176,17 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
           <button onClick={addComp} style={{...btnGhost,marginTop:10}}>+ Add comp</button>
         </Section>
 
-        {summary&&<div style={{padding:16,background:"var(--color-background-primary)",borderRadius:10,border:"0.5px solid var(--color-border-secondary)",marginBottom:14}}>
-          <div style={{fontSize:11,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-secondary)",textTransform:"uppercase",marginBottom:10}}>Reconciliation · {summary.n} comps</div>
+        {summary&&<div style={{padding:16,background:"var(--surface)",borderRadius:10,border:"1px solid var(--line-2)",marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:600,fontFamily:SANS,color:"var(--ink-2)",textTransform:"uppercase",marginBottom:10}}>Reconciliation · {summary.n} comps</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>
             <Card l="Low" v={fmt(summary.low)}/><Card l="Median" v={fmt(summary.med)} accent="#0f7a52"/><Card l="Average" v={fmt(summary.avg)}/><Card l="High" v={fmt(summary.high)}/><Card l="Implied $/SF" v={summary.ppsf?`$${summary.ppsf}`:"—"}/>
           </div>
-          {+b.listPrice>0&&<div style={{fontSize:12,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginTop:10}}>Median adjusted value is {summary.med>=+b.listPrice?"above":"below"} your list/target by {fmt(Math.abs(summary.med-(+b.listPrice)))} ({Math.round(Math.abs(summary.med-(+b.listPrice))/(+b.listPrice)*100)}%).</div>}
+          {+b.listPrice>0&&<div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS,marginTop:10}}>Median adjusted value is {summary.med>=+b.listPrice?"above":"below"} your list/target by {fmt(Math.abs(summary.med-(+b.listPrice)))} ({Math.round(Math.abs(summary.med-(+b.listPrice))/(+b.listPrice)*100)}%).</div>}
         </div>}
       </>
 
       <Section title="Notes">
-        <textarea value={b.notes} onChange={e=>setB(p=>({...p,notes:e.target.value}))} placeholder="Market context, condition notes, recommended list price or offer strategy…" rows={4} style={{width:"100%",padding:"8px 10px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif",resize:"vertical",boxSizing:"border-box"}}/>
+        <textarea value={b.notes} onChange={e=>setB(p=>({...p,notes:e.target.value}))} placeholder="Market context, condition notes, recommended list price or offer strategy…" rows={4} style={{width:"100%",padding:"8px 10px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS,resize:"vertical",boxSizing:"border-box"}}/>
       </Section>
 
       <div style={{display:"flex",gap:8}}>
@@ -2602,24 +2622,24 @@ function AdjustmentValues({adjLib,saveAdjLib,adjCats,saveAdjCats}) {
 
   return <div>
     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:8}}>
-      <div style={{fontSize:13,color:"var(--color-text-secondary)",fontFamily:"sans-serif",maxWidth:560,lineHeight:1.5}}>Your reusable feature adjustment values, grouped by category. Each category becomes a selectable, auto-calculating row in the CMA grid. Positive = feature adds value; the grid computes adjustments as subject value minus comp value.</div>
+      <div style={{fontSize:13,color:"var(--ink-2)",fontFamily:SANS,maxWidth:560,lineHeight:1.5}}>Your reusable feature adjustment values, grouped by category. Each category becomes a selectable, auto-calculating row in the CMA grid. Positive = feature adds value; the grid computes adjustments as subject value minus comp value.</div>
       <div style={{display:"flex",gap:6}}>
-        <button onClick={()=>{setShowCat(!showCat);setShowAdd(false);}} style={{...btnGhost,padding:"7px 14px",background:showCat?"var(--accent)":"var(--color-background-secondary)",color:showCat?"#fff":"var(--color-text-primary)"}}>+ Category</button>
-        <button onClick={()=>{setShowAdd(!showAdd);setShowCat(false);}} style={{...btnGhost,padding:"7px 14px",background:showAdd?"var(--accent)":"var(--color-background-secondary)",color:showAdd?"#fff":"var(--color-text-primary)"}}>+ Value</button>
+        <button onClick={()=>{setShowCat(!showCat);setShowAdd(false);}} style={{...btnGhost,padding:"7px 14px",background:showCat?"var(--accent)":"var(--surface-3)",color:showCat?"#fff":"var(--ink)"}}>+ Category</button>
+        <button onClick={()=>{setShowAdd(!showAdd);setShowCat(false);}} style={{...btnGhost,padding:"7px 14px",background:showAdd?"var(--accent)":"var(--surface-3)",color:showAdd?"#fff":"var(--ink)"}}>+ Value</button>
       </div>
     </div>
 
-    {showCat&&<div style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14,marginBottom:16,border:"0.5px solid var(--color-border-tertiary)"}}>
-      <div style={{fontSize:12,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-primary)",marginBottom:8}}>New category</div>
+    {showCat&&<div style={{background:"var(--surface-3)",borderRadius:10,padding:14,marginBottom:16,border:"1px solid var(--line)"}}>
+      <div style={{fontSize:12,fontWeight:600,fontFamily:SANS,color:"var(--ink)",marginBottom:8}}>New category</div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:200}}>{inp(newCat,setNewCat,"Category name (e.g. HVAC, Lot Size, Interior)")}</div>
         <button onClick={addCat} style={btnPrimary}>Add Category</button>
         <button onClick={()=>setShowCat(false)} style={btnGhost}>Cancel</button>
       </div>
-      <div style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginTop:8}}>New categories appear immediately as a toggleable, auto-calculating row in the CMA grid — even before you add any values to them.</div>
+      <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS,marginTop:8}}>New categories appear immediately as a toggleable, auto-calculating row in the CMA grid — even before you add any values to them.</div>
     </div>}
 
-    {showAdd&&<div style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14,marginBottom:16,border:"0.5px solid var(--color-border-tertiary)"}}>
+    {showAdd&&<div style={{background:"var(--surface-3)",borderRadius:10,padding:14,marginBottom:16,border:"1px solid var(--line)"}}>
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:10}}>
         <div>{inp(n.name,v=>setN(p=>({...p,name:v})),"Feature name (e.g. Sunroom)")}</div>
         <div>{inp(n.value,v=>setN(p=>({...p,value:v})),"Value $","number")}</div>
@@ -2629,25 +2649,25 @@ function AdjustmentValues({adjLib,saveAdjLib,adjCats,saveAdjCats}) {
     </div>}
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
-      {cats.map(cat=><div key={cat} style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14}}>
+      {cats.map(cat=><div key={cat} style={{background:"var(--surface-3)",borderRadius:10,padding:14}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <span style={{fontSize:11,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{cat} <span style={{color:"var(--color-text-secondary)",fontWeight:400}}>({(grouped[cat]||[]).length})</span></span>
+          <span style={{fontSize:11,fontWeight:600,fontFamily:SANS,color:"var(--ink)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{cat} <span style={{color:"var(--ink-2)",fontWeight:400}}>({(grouped[cat]||[]).length})</span></span>
           <div style={{display:"flex",gap:4}}>
             <button onClick={()=>{setN(p=>({...p,cat}));setShowAdd(true);setShowCat(false);}} style={{...btnGhost,fontSize:10,padding:"2px 7px"}} title="Add value here">+</button>
             <button onClick={()=>delCat(cat)} style={{...btnGhost,fontSize:10,padding:"2px 6px",color:"#b3392c"}} title="Delete category">×</button>
           </div>
         </div>
         {(grouped[cat]||[]).length===0
-          ? <div style={{fontSize:11,color:"var(--color-text-tertiary)",fontFamily:"sans-serif",padding:"4px 0"}}>No values yet — click + to add one.</div>
+          ? <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:SANS,padding:"4px 0"}}>No values yet — click + to add one.</div>
           : <table style={{width:"100%",borderCollapse:"collapse"}}><tbody>
-            {grouped[cat].map(a=><tr key={a.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
+            {grouped[cat].map(a=><tr key={a.id} style={{borderBottom:"1px solid var(--line)"}}>
               {edit===a.id?<>
                 <td style={tdS()}>{inp(ed.name,v=>setEd(p=>({...p,name:v})),"Name")}</td>
                 <td style={tdS({width:80})}>{inp(ed.value,v=>setEd(p=>({...p,value:v})),"$","number")}</td>
                 <td style={tdS({width:60,textAlign:"right"})}><div style={{display:"flex",gap:3,justifyContent:"flex-end"}}><button onClick={save} style={{...btnPrimary,fontSize:10,padding:"3px 7px"}}>✓</button><button onClick={()=>setEdit(null)} style={{...btnGhost,fontSize:10,padding:"3px 6px"}}>×</button></div></td>
               </>:<>
                 <td style={tdS({fontWeight:500})}>{a.name}</td>
-                <td style={tdS({textAlign:"right",fontWeight:600,color:a.value<0?"#dc2626":a.value>0?"#0f7a52":"var(--color-text-secondary)"})}>{fmt(a.value)}</td>
+                <td style={tdS({textAlign:"right",fontWeight:600,color:a.value<0?"#dc2626":a.value>0?"#0f7a52":"var(--ink-2)"})}>{fmt(a.value)}</td>
                 <td style={tdS({width:56,textAlign:"right"})}><div style={{display:"flex",gap:3,justifyContent:"flex-end"}}><button onClick={()=>{setEdit(a.id);setEd({...a});}} style={{...btnGhost,fontSize:10,padding:"3px 6px"}}>✎</button><button onClick={()=>del(a.id)} style={{...btnGhost,fontSize:10,padding:"3px 5px",color:"#b3392c"}}>×</button></div></td>
               </>}
             </tr>)}
@@ -2700,18 +2720,18 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
     </div>
 
     <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-      <div style={{display:"flex",gap:4,background:"var(--color-background-secondary)",borderRadius:8,padding:3}}>
-        {[["list","List"],["board","Board"]].map(([k,l])=><button key={k} onClick={()=>setView(k)} style={{fontSize:12,padding:"5px 14px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:"sans-serif",background:view===k?"var(--accent)":"transparent",color:view===k?"#fff":"var(--color-text-secondary)",fontWeight:view===k?600:400}}>{l}</button>)}
+      <div style={{display:"flex",gap:4,background:"var(--surface-3)",borderRadius:8,padding:3}}>
+        {[["list","List"],["board","Board"]].map(([k,l])=><button key={k} onClick={()=>setView(k)} style={{fontSize:12,padding:"5px 14px",borderRadius:6,border:"none",cursor:"pointer",fontFamily:SANS,background:view===k?"var(--accent)":"transparent",color:view===k?"#fff":"var(--ink-2)",fontWeight:view===k?600:400}}>{l}</button>)}
       </div>
-      <input placeholder="Search contacts…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:160,padding:"7px 12px",fontSize:13,borderRadius:8,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif"}}/>
-      <button onClick={()=>setShowAdd(!showAdd)} style={{...btnGhost,padding:"7px 14px",background:showAdd?"var(--accent)":"var(--color-background-secondary)",color:showAdd?"#fff":"var(--color-text-primary)"}}>+ Add Contact</button>
+      <input placeholder="Search contacts…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:160,padding:"7px 12px",fontSize:13,borderRadius:8,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}/>
+      <button onClick={()=>setShowAdd(!showAdd)} style={{...btnGhost,padding:"7px 14px",background:showAdd?"var(--accent)":"var(--surface-3)",color:showAdd?"#fff":"var(--ink)"}}>+ Add Contact</button>
     </div>
 
     <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
       {["All",...CTYPES].map(t=><button key={t} onClick={()=>setTypeFilter(t)} style={chip(typeFilter===t)}>{t}</button>)}
     </div>
 
-    {showAdd&&<div style={{background:"var(--color-background-secondary)",borderRadius:10,padding:14,marginBottom:16,border:"0.5px solid var(--color-border-tertiary)"}}>
+    {showAdd&&<div style={{background:"var(--surface-3)",borderRadius:10,padding:14,marginBottom:16,border:"1px solid var(--line)"}}>
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
         <div>{inp(n.name,v=>setN(p=>({...p,name:v})),"Name")}</div>
         <div>{sel(n.type,v=>setN(p=>({...p,type:v})),CTYPES)}</div>
@@ -2726,25 +2746,25 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
         <div>{inp(n.lastTouch,v=>setN(p=>({...p,lastTouch:v})),"Last touch (m/d/y)")}</div>
         <div>{inp(n.nextFollowUp,v=>setN(p=>({...p,nextFollowUp:v})),"Next follow-up (m/d/y)")}</div>
       </div>
-      <textarea value={n.notes} onChange={e=>setN(p=>({...p,notes:e.target.value}))} placeholder="Notes…" rows={2} style={{width:"100%",padding:"7px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
+      <textarea value={n.notes} onChange={e=>setN(p=>({...p,notes:e.target.value}))} placeholder="Notes…" rows={2} style={{width:"100%",padding:"7px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS,resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
       <div style={{display:"flex",gap:8}}><button onClick={addContact} style={btnPrimary}>Add Contact</button><button onClick={()=>setShowAdd(false)} style={btnGhost}>Cancel</button></div>
     </div>}
 
     {view==="list"&&<>
       <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
-        <span style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}>Stage:</span>
+        <span style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS}}>Stage:</span>
         {["All",...STG].map(s=><button key={s} onClick={()=>setStageFilter(s)} style={{...chip(stageFilter===s),fontSize:11,padding:"3px 9px"}}>{s}</button>)}
       </div>
-      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+      <div className="hb-tablescroll"><table className="hb-rows" style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
         <colgroup><col style={{width:"22%"}}/><col style={{width:"11%"}}/><col style={{width:"13%"}}/><col style={{width:"17%"}}/><col style={{width:"15%"}}/><col style={{width:"12%"}}/><col style={{width:"10%"}}/></colgroup>
-        <thead><tr style={{borderBottom:"1px solid var(--color-border-tertiary)"}}>{["Name","Type","Stage","Contact","Linked Deal","Next Follow-Up",""].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
-        <tbody>{filtered.map(c=><tr key={c.id} onClick={()=>setOpen(c.id)} style={{borderBottom:"0.5px solid var(--color-border-tertiary)",cursor:"pointer"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--line)"}}>{["Name","Type","Stage","Contact","Linked Deal","Next Follow-Up",""].map(h=><th key={h} style={thS}>{h}</th>)}</tr></thead>
+        <tbody>{filtered.map(c=><tr key={c.id} onClick={()=>setOpen(c.id)} style={{borderBottom:"1px solid var(--line)",cursor:"pointer"}}>
           <td style={tdS({fontWeight:500,display:"flex",alignItems:"center",gap:8,overflow:"hidden"})}><span style={{width:26,height:26,borderRadius:"50%",background:"#e0e7ff",color:"#3730a3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:600,flexShrink:0}}>{initials(c.name)}</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span></td>
           <td style={tdS()}><Pill color={typeColors[c.type]||{bg:"#eee",text:"#555"}}>{c.type}</Pill></td>
           <td style={tdS()}><Pill color={stageColors[c.stage]||{bg:"#eee",text:"#555"}}>{c.stage}</Pill></td>
-          <td style={tdS({color:"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{c.phone||c.email||"—"}</td>
-          <td style={tdS({color:c.linkedAddr?"var(--accent)":"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{c.linkedAddr||"—"}</td>
-          <td style={tdS({color:"var(--color-text-secondary)"})}>{c.nextFollowUp||"—"}</td>
+          <td style={tdS({color:"var(--ink-2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{c.phone||c.email||"—"}</td>
+          <td style={tdS({color:c.linkedAddr?"var(--accent)":"var(--ink-2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{c.linkedAddr||"—"}</td>
+          <td style={tdS({color:"var(--ink-2)"})}>{c.nextFollowUp||"—"}</td>
           <td style={tdS()} onClick={e=>e.stopPropagation()}><button onClick={()=>delContact(c.id)} style={{...btnGhost,fontSize:10,padding:"3px 7px",color:"#b3392c"}}>×</button></td>
         </tr>)}</tbody>
       </table></div>
@@ -2752,24 +2772,24 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
 
     {view==="board"&&<div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8}}>
       {STG.map(stage=>{const col=filtered.filter(c=>c.stage===stage);const sc=stageColors[stage]||{bg:"#eee",text:"#555"};return (
-        <div key={stage} onDragOver={e=>e.preventDefault()} onDrop={()=>onDrop(stage)} style={{minWidth:180,flex:"1 0 180px",background:"var(--color-background-secondary)",borderRadius:10,padding:10}}>
+        <div key={stage} onDragOver={e=>e.preventDefault()} onDrop={()=>onDrop(stage)} style={{minWidth:180,flex:"1 0 180px",background:"var(--surface-3)",borderRadius:10,padding:10}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <span style={{fontSize:12,fontWeight:600,fontFamily:"sans-serif",color:sc.text}}>{stage}</span>
-            <span style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}>{col.length}</span>
+            <span style={{fontSize:12,fontWeight:600,fontFamily:SANS,color:sc.text}}>{stage}</span>
+            <span style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS}}>{col.length}</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8,minHeight:40}}>
-            {col.map(c=><div key={c.id} draggable onDragStart={()=>setDragId(c.id)} onClick={()=>setOpen(c.id)} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:8,padding:10,cursor:"grab"}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}><span style={{width:22,height:22,borderRadius:"50%",background:"#e0e7ff",color:"#3730a3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:600,flexShrink:0}}>{initials(c.name)}</span><span style={{fontSize:12,fontWeight:500,fontFamily:"sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span></div>
+            {col.map(c=><div key={c.id} draggable onDragStart={()=>setDragId(c.id)} onClick={()=>setOpen(c.id)} style={{background:"var(--surface)",border:"1px solid var(--line)",borderRadius:8,padding:10,cursor:"grab"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}><span style={{width:22,height:22,borderRadius:"50%",background:"#e0e7ff",color:"#3730a3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:600,flexShrink:0}}>{initials(c.name)}</span><span style={{fontSize:12,fontWeight:500,fontFamily:SANS,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span></div>
               <Pill color={typeColors[c.type]||{bg:"#eee",text:"#555"}}>{c.type}</Pill>
-              {c.linkedAddr&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:"sans-serif",marginTop:5}}>{c.linkedAddr}</div>}
-              {c.nextFollowUp&&<div style={{fontSize:10,color:"var(--color-text-secondary)",fontFamily:"sans-serif",marginTop:3}}>Follow-up: {c.nextFollowUp}</div>}
+              {c.linkedAddr&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:SANS,marginTop:5}}>{c.linkedAddr}</div>}
+              {c.nextFollowUp&&<div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,marginTop:3}}>Follow-up: {c.nextFollowUp}</div>}
             </div>)}
           </div>
         </div>
       );})}
     </div>}
 
-    {openC&&<div style={{marginTop:18,background:"var(--color-background-secondary)",borderRadius:12,padding:20,border:"0.5px solid var(--color-border-secondary)"}}>
+    {openC&&<div style={{marginTop:18,background:"var(--surface-3)",borderRadius:12,padding:20,border:"1px solid var(--line-2)"}}>
       {editId===openC.id ? <>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
           <div>{inp(ed.name,v=>setEd(p=>({...p,name:v})),"Name")}</div>
@@ -2785,26 +2805,26 @@ function MyCRM({contacts,saveContacts,addrOptions}) {
           <div>{inp(ed.lastTouch,v=>setEd(p=>({...p,lastTouch:v})),"Last touch")}</div>
           <div>{inp(ed.nextFollowUp,v=>setEd(p=>({...p,nextFollowUp:v})),"Next follow-up")}</div>
         </div>
-        <textarea value={ed.notes} onChange={e=>setEd(p=>({...p,notes:e.target.value}))} rows={3} style={{width:"100%",padding:"7px 10px",fontSize:12,borderRadius:6,border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"sans-serif",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
+        <textarea value={ed.notes} onChange={e=>setEd(p=>({...p,notes:e.target.value}))} rows={3} style={{width:"100%",padding:"7px 10px",fontSize:12,borderRadius:6,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS,resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
         <div style={{display:"flex",gap:8}}><button onClick={saveEdit} style={btnPrimary}>Save</button><button onClick={()=>setEditId(null)} style={btnGhost}>Cancel</button></div>
       </> : <>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
           <div style={{display:"flex",gap:12,alignItems:"center"}}>
             <span style={{width:44,height:44,borderRadius:"50%",background:"#e0e7ff",color:"#3730a3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:600,flexShrink:0}}>{initials(openC.name)}</span>
-            <div><div style={{fontSize:16,fontWeight:600,fontFamily:"sans-serif",color:"var(--color-text-primary)"}}>{openC.name}</div><div style={{display:"flex",gap:6,marginTop:4}}><Pill color={typeColors[openC.type]||{bg:"#eee",text:"#555"}}>{openC.type}</Pill><Pill color={stageColors[openC.stage]||{bg:"#eee",text:"#555"}}>{openC.stage}</Pill></div></div>
+            <div><div style={{fontSize:16,fontWeight:600,fontFamily:SANS,color:"var(--ink)"}}>{openC.name}</div><div style={{display:"flex",gap:6,marginTop:4}}><Pill color={typeColors[openC.type]||{bg:"#eee",text:"#555"}}>{openC.type}</Pill><Pill color={stageColors[openC.stage]||{bg:"#eee",text:"#555"}}>{openC.stage}</Pill></div></div>
           </div>
           <div style={{display:"flex",gap:6}}><button onClick={()=>{setEditId(openC.id);setEd({...openC});}} style={btnGhost}>Edit</button><button onClick={()=>delContact(openC.id)} style={{...btnGhost,color:"#b3392c"}}>Delete</button><button onClick={()=>setOpen(null)} style={btnGhost}>Close</button></div>
         </div>
-        <table style={{width:"100%",fontSize:13,fontFamily:"sans-serif",marginBottom:12}}><tbody>
-          {openC.email&&<tr><td style={{color:"var(--color-text-secondary)",padding:"4px 0",width:120}}>Email</td><td style={{color:"var(--accent)"}}>{openC.email}</td></tr>}
-          {openC.phone&&<tr><td style={{color:"var(--color-text-secondary)",padding:"4px 0"}}>Phone</td><td>{openC.phone}</td></tr>}
-          {openC.linkedAddr&&<tr><td style={{color:"var(--color-text-secondary)",padding:"4px 0"}}>Linked deal</td><td style={{color:"var(--accent)"}}>{openC.linkedAddr}</td></tr>}
-          {openC.lastTouch&&<tr><td style={{color:"var(--color-text-secondary)",padding:"4px 0"}}>Last touch</td><td>{openC.lastTouch}</td></tr>}
-          {openC.nextFollowUp&&<tr><td style={{color:"var(--color-text-secondary)",padding:"4px 0"}}>Next follow-up</td><td style={{fontWeight:600,color:"#d97706"}}>{openC.nextFollowUp}</td></tr>}
+        <table style={{width:"100%",fontSize:13,fontFamily:SANS,marginBottom:12}}><tbody>
+          {openC.email&&<tr><td style={{color:"var(--ink-2)",padding:"4px 0",width:120}}>Email</td><td style={{color:"var(--accent)"}}>{openC.email}</td></tr>}
+          {openC.phone&&<tr><td style={{color:"var(--ink-2)",padding:"4px 0"}}>Phone</td><td>{openC.phone}</td></tr>}
+          {openC.linkedAddr&&<tr><td style={{color:"var(--ink-2)",padding:"4px 0"}}>Linked deal</td><td style={{color:"var(--accent)"}}>{openC.linkedAddr}</td></tr>}
+          {openC.lastTouch&&<tr><td style={{color:"var(--ink-2)",padding:"4px 0"}}>Last touch</td><td>{openC.lastTouch}</td></tr>}
+          {openC.nextFollowUp&&<tr><td style={{color:"var(--ink-2)",padding:"4px 0"}}>Next follow-up</td><td style={{fontWeight:600,color:"#d97706"}}>{openC.nextFollowUp}</td></tr>}
         </tbody></table>
-        {openC.notes&&<div style={{fontSize:13,fontFamily:"sans-serif",color:"var(--color-text-primary)",background:"var(--color-background-primary)",borderRadius:8,padding:12,lineHeight:1.6,marginBottom:12}}>{openC.notes}</div>}
+        {openC.notes&&<div style={{fontSize:13,fontFamily:SANS,color:"var(--ink)",background:"var(--surface)",borderRadius:8,padding:12,lineHeight:1.6,marginBottom:12}}>{openC.notes}</div>}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:11,color:"var(--color-text-secondary)",fontFamily:"sans-serif"}}>Move to:</span>
+          <span style={{fontSize:11,color:"var(--ink-2)",fontFamily:SANS}}>Move to:</span>
           {STG.filter(s=>s!==openC.stage).map(s=><button key={s} onClick={()=>moveStage(openC.id,s)} style={{...btnGhost,fontSize:11,padding:"4px 10px"}}>{s}</button>)}
         </div>
       </>}
