@@ -79,9 +79,12 @@
   .hb-rows tbody tr{transition:background .1s ease;}
   /* Pinned first column: opaque so rows scroll under it, and painted with the
      same solid stripe as its row so the two never disagree. */
-  .hb-rows tbody td.hb-stick{background:var(--surface);}
-  .hb-rows tbody tr:nth-child(even) td.hb-stick{background:var(--row-even);}
-  .hb-rows tbody tr:hover td.hb-stick{background:var(--row-hover);}
+  .hb-rows tbody td.hb-stick,.hb-rows tbody th.hb-stick{background:var(--surface);}
+  .hb-rows tbody tr:nth-child(even) td.hb-stick,.hb-rows tbody tr:nth-child(even) th.hb-stick{background:var(--row-even);}
+  .hb-rows tbody tr:hover td.hb-stick,.hb-rows tbody tr:hover th.hb-stick{background:var(--row-hover);}
+  /* A band row labels a section; it should not read as a data row. */
+  .hb-rows tbody tr.hb-band td,.hb-rows tbody tr.hb-band th,
+  .hb-rows tbody tr.hb-band:hover td,.hb-rows tbody tr.hb-band:hover th{background:var(--surface-3)!important;}
 
   /* Comfortable touch targets on real phones without inflating desktop. */
   @media (max-width:560px) and (pointer:coarse){
@@ -898,6 +901,7 @@ function Homebase() {
   const [profile, saveProfile] = useStore("hb_profile_v1", SEED_PROFILE);
   const [contacts, saveContacts] = useStore("hb_crm_v1", SEED_CONTACTS);
   const [settings, saveSettings] = useStore("hb_settings_v1", SEED_SETTINGS);
+  const [offers, saveOffers] = useStore("hb_offers_v1", []);
   const landedRef=useRef(false);
   useEffect(()=>{ if(!landedRef.current && settings && settings.defaultTab){ landedRef.current=true; if(settings.defaultTab!=="home") setParent(settings.defaultTab); } },[settings]);
 
@@ -913,6 +917,30 @@ function Homebase() {
       notes:`Promoted from CMA${cma.listPrice?` (target ${fmt(+cma.listPrice)})`:""}` };
     saveEscrow([...escrow,newRow]);
     saveCmas(cmas.map(c=>c.id===cma.id?{...c,promotedTo:newId}:c));
+    setParent("sales");
+  };
+
+  // Lifecycle promotion: accepted offer → Pipeline (carries price, the listing
+  // side commission as gross, and every contingency deadline the offer set).
+  const promoteOfferToPipeline=(cmp,offer)=>{
+    if(cmp.promotedTo && escrow.some(r=>r.id===cmp.promotedTo)){ if(!confirm("This comparison is already linked to a pipeline deal. Create another?")) return; }
+    const sts=names(settings.pipelineStatuses); const status=sts.includes("Pending")?"Pending":(sts[0]||"Pending");
+    const n=offerNet(cmp,offer);
+    const iso=(k)=>oIso(offerDeadline(offer,k));
+    const insp=offerDeadline(offer,"inspection"); const res=oNum(offer.resolution);
+    const newId=uid();
+    const row={ id:newId, address:cmp.address||"", zip:cmp.zip||"", price:oNum(offer.price)||0,
+      gross:Math.round(n.listComm), agentComm:0, status, side:"sell", sellerName:cmp.client||"",
+      contractType:offer.contractType||"", buyerName:offer.buyer||"", buyerAgent:offer.agent||"",
+      contractDate:offer.contractDate||"",
+      acceptance:(offer.acceptDeadline||"").slice(0,10),
+      closing:offer.closingDate||"",
+      inspection:iso("inspection"), insurability:iso("insurability"), muniInspection:iso("occupancy"),
+      appraisal:iso("appraisal"), financing:iso("financing"), titleSurvey:iso("titleSurvey"),
+      inspResolution:(insp&&res!==null)?oIso(oAddDays(insp,res)):"",
+      notes:`Promoted from offer comparison — ${offer.name}${offer.buyer?` (${offer.buyer})`:""}. Estimated net ${oMoney(n.net)}.` };
+    saveEscrow([...escrow,row]);
+    saveOffers(offers.map(c=>c.id===cmp.id?{...c,promotedTo:newId,status:"Accepted"}:c));
     setParent("sales");
   };
 
@@ -956,11 +984,12 @@ function Homebase() {
       </div>
 
       <div className="hb-tabs" style={{marginBottom:24,borderBottom:"1px solid var(--line)"}}>
-        {[["home","Home"],["sales","My Sales"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
+        {[["home","Home"],["sales","My Sales"],["offers","My Offers"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
       </div>
 
       {parent==="home" && <Dashboard hist={hist} escrow={escrow} cmas={cmas} contacts={contacts} go={setParent} profile={profile} adjLib={adjLib}/>}
       {parent==="sales" && <MySales hist={hist} saveHist={saveHist} escrow={escrow} saveEscrow={saveEscrow} profile={profile} saveProfile={saveProfile} contacts={contacts}/>}
+      {parent==="offers" && <MyOffers comparisons={offers} saveComparisons={saveOffers} escrow={escrow} cmas={cmas} contacts={contacts} profile={profile} saveProfile={saveProfile} onPromote={promoteOfferToPipeline}/>}
       {parent==="cmas" && <MyCMAs cmas={cmas} saveCmas={saveCmas} adjLib={adjLib} saveAdjLib={saveAdjLib} adjCats={adjCats} saveAdjCats={saveAdjCats} profile={profile} saveProfile={saveProfile} addrOptions={addrOptions} onPromote={promoteCmaToPipeline}/>}
       {parent==="crm" && <MyCRM contacts={contacts} saveContacts={saveContacts} addrOptions={addrOptions}/>}
       {parent==="settings" && <Settings settings={settings} saveSettings={saveSettings} profile={profile} saveProfile={saveProfile} stores={{hist,saveHist,escrow,saveEscrow,cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,saveProfile,contacts,saveContacts,settings,saveSettings}}/>}
@@ -2696,6 +2725,625 @@ function AdjustmentValues({adjLib,saveAdjLib,adjCats,saveAdjCats}) {
   </div>;
 }
 
+// ════════════════════════ MY OFFERS ════════════════════════
+// Side-by-side comparison of the offers on one listing: terms, contingencies
+// and an estimated seller net sheet, with a client-facing report and
+// promotion of the accepted offer into Pipeline & Escrow.
+
+const OFFER_CONTRACT_TYPES=["Residential Sale Contract","New Construction","Multi-Family","Vacant Land","Commercial","Other"];
+const OFFER_FINANCE_TYPES=["Cash","Conventional","FHA","VA","USDA","Portfolio / Non-QM","Hard money","Other"];
+const OFFER_PARTIES=["Buyer","Seller","Split 50/50","Not applicable"];
+const OFFER_STATUSES=["Collecting","Presented","Accepted","Archived"];
+const OFFER_STATUS_COLORS={Collecting:{bg:"#e0e7ff",text:"#3730a3"},Presented:{bg:"#fef9c3",text:"#854d0e"},Accepted:{bg:"#dcfce7",text:"#166534"},Archived:{bg:"#f3f4f6",text:"#374151"}};
+
+const OFFER_SECTIONS=[
+  { id:"price", title:"Price and money at risk", rows:[
+    {key:"price",        label:"Purchase price",                    type:"money",     best:"max"},
+    {key:"earnest",      label:"Earnest money",                     type:"money",     best:"max"},
+    {key:"escalation",   label:"Escalation clause",                 type:"escalation", sub:"Cap and increment above competing offers"},
+    {key:"buyerComm",    label:"Buyer agent commission requested",  type:"pctmoney",  best:"min", sub:"Paid by seller at closing"},
+    {key:"sellerPaidCC", label:"Seller paid closing costs",         type:"pctmoney",  best:"min", sub:"Concession to the buyer"},
+    {key:"buyerPaidCC",  label:"Buyer paid closing costs",          type:"money",     best:"max", sub:"Credit to the seller"},
+  ]},
+  { id:"terms", title:"Contract and dates", rows:[
+    {key:"contractType",  label:"Contract type",       type:"select", options:OFFER_CONTRACT_TYPES},
+    {key:"financeType",   label:"Financing type",      type:"select", options:OFFER_FINANCE_TYPES},
+    {key:"contractDate",  label:"Contract date",       type:"date",   sub:"Deadlines below count from this date"},
+    {key:"acceptDeadline",label:"Acceptance deadline", type:"datetime"},
+    {key:"closingDate",   label:"Closing date",        type:"date",   best:"min"},
+  ]},
+  { id:"cont", title:"Contingencies and deadlines", rows:[
+    {key:"homeSale",    label:"Home sale contingency",        type:"statustext",  sub:"Address and status of buyer's property"},
+    {key:"inspection",  label:"Inspection deadline",          type:"statusdate"},
+    {key:"resolution",  label:"Inspection resolution period", type:"days",        sub:"Days after the inspection deadline"},
+    {key:"insurability",label:"Insurability deadline",        type:"statusdate"},
+    {key:"occupancy",   label:"Occupancy inspection",         type:"statusparty", sub:"Deadline and who is responsible"},
+    {key:"appraisal",   label:"Appraisal deadline",           type:"statusdate"},
+    {key:"financing",   label:"Financing deadline",           type:"statusdate"},
+    {key:"titleSurvey", label:"Title and survey deadline",    type:"statusdate"},
+  ]},
+];
+const OFFER_CONTINGENCY_KEYS=["homeSale","inspection","insurability","occupancy","appraisal","financing","titleSurvey"];
+
+// Money fields hold the raw string the user typed and are parsed on read, so
+// nothing is lost or reformatted mid-keystroke. Display formatting happens in
+// the derived lines and the client report.
+const oNum=(v)=>{ if(v===null||v===undefined||v==="") return null; const n=parseFloat(String(v).replace(/[^0-9.\-]/g,"")); return isNaN(n)?null:n; };
+const oMoney=(n)=>{ if(n===null||n===undefined||isNaN(n)) return ""; const neg=n<0; return (neg?"(":"")+"$"+Math.round(Math.abs(n)).toLocaleString("en-US")+(neg?")":""); };
+const oDateOf=(s)=>{ if(!s) return null; const p=String(s).slice(0,10).split("-"); if(p.length!==3) return null; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d.getTime())?null:d; };
+const oDateStr=(d)=> d?`${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}`:"";
+const oAddDays=(d,n)=>{ const x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; };
+const oIso=(d)=> d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`:"";
+const oDateTimeStr=(s)=>{ if(!s) return ""; const d=new Date(s); if(isNaN(d.getTime())) return ""; return `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}, ${d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`; };
+
+function newOfferRow(n){
+  const o={ id:uid(), name:"Offer "+n, buyer:"", agent:"", notes:"", price:"", earnest:"",
+    escalation:{on:"No",cap:"",step:""},
+    buyerComm:{mode:"pct",value:""},
+    sellerPaidCC:{mode:"flat",value:""},
+    buyerPaidCC:"",
+    contractType:OFFER_CONTRACT_TYPES[0], financeType:"", contractDate:"", acceptDeadline:"", closingDate:"",
+    resolution:"" };
+  OFFER_CONTINGENCY_KEYS.forEach(k=>{ o[k]={status:"Included",days:"",date:"",note:"",party:"Buyer"}; });
+  o.homeSale.status="Waived";
+  return o;
+}
+function newComparison(seed){
+  seed=seed||{};
+  return { id:uid(), address:seed.address||"", zip:seed.zip||"", client:seed.client||"",
+    date:new Date().toISOString().slice(0,10), status:"Collecting",
+    linkedDeal:seed.linkedDeal||"", promotedTo:"", acceptedId:"",
+    costs:{listCommMode:"pct",listComm:"3",title:"",prorations:"",otherLabel:"",other:""},
+    offers:[] };
+}
+
+// ── net sheet ──
+function oPctMoney(obj,price){ if(!obj) return 0; const v=oNum(obj.value); if(v===null) return 0; return obj.mode==="pct" ? (oNum(price)||0)*v/100 : v; }
+function offerNet(cmp,o){
+  const c=cmp.costs||{};
+  const price=oNum(o.price)||0;
+  const listComm=c.listCommMode==="pct" ? price*(oNum(c.listComm)||0)/100 : (oNum(c.listComm)||0);
+  const buyComm=oPctMoney(o.buyerComm,price);
+  const sellerCC=oPctMoney(o.sellerPaidCC,price);
+  const buyerCC=oNum(o.buyerPaidCC)||0;
+  const title=oNum(c.title)||0, pror=oNum(c.prorations)||0, other=oNum(c.other)||0;
+  return {price,listComm,buyComm,sellerCC,buyerCC,title,pror,other,
+    net: price-listComm-buyComm-sellerCC+buyerCC-title-pror-other};
+}
+function offerWaived(o){ return OFFER_CONTINGENCY_KEYS.filter(k=>o[k]&&o[k].status==="Waived").length; }
+function offerDeadline(o,key){
+  const c=o[key]; if(!c) return null;
+  if(c.date) return oDateOf(c.date);
+  const base=oDateOf(o.contractDate); const d=oNum(c.days);
+  if(base&&d!==null) return oAddDays(base,d);
+  return null;
+}
+
+// ── ranking ──
+function offerMetric(row,o){
+  switch(row.key){
+    case "price":        return oNum(o.price);
+    case "earnest":      return oNum(o.earnest);
+    // A blank field means "not entered", not zero. Ranking it as zero put a
+    // "strongest on this line" marker on every offer before anything was typed.
+    case "buyerComm":    return (o.buyerComm&&o.buyerComm.value!==""&&o.buyerComm.value!==null)?oPctMoney(o.buyerComm,oNum(o.price)||0):null;
+    case "sellerPaidCC": return (o.sellerPaidCC&&o.sellerPaidCC.value!==""&&o.sellerPaidCC.value!==null)?oPctMoney(o.sellerPaidCC,oNum(o.price)||0):null;
+    case "buyerPaidCC":  return oNum(o.buyerPaidCC);
+    case "closingDate":  { const d=oDateOf(o.closingDate); return d?d.getTime():null; }
+    default: return null;
+  }
+}
+function offerBest(offers,row){
+  if(!row.best||offers.length<2) return [];
+  const vals=offers.map(o=>({id:o.id,v:offerMetric(row,o)})).filter(x=>x.v!==null&&!isNaN(x.v));
+  if(vals.length<2) return [];
+  const target=row.best==="max"?Math.max(...vals.map(x=>x.v)):Math.min(...vals.map(x=>x.v));
+  const win=vals.filter(x=>x.v===target);
+  return win.length===vals.length?[]:win.map(x=>x.id);
+}
+function offerBestNet(cmp){
+  const priced=(cmp.offers||[]).filter(o=>oNum(o.price)!==null);
+  if(priced.length<2) return [];
+  const vals=priced.map(o=>({id:o.id,v:offerNet(cmp,o).net}));
+  const max=Math.max(...vals.map(x=>x.v));
+  const win=vals.filter(x=>x.v===max);
+  return win.length===vals.length?[]:win.map(x=>x.id);
+}
+function offerBestWaived(cmp){
+  const offers=cmp.offers||[];
+  if(offers.length<2) return [];
+  const vals=offers.map(o=>({id:o.id,v:offerWaived(o)}));
+  const max=Math.max(...vals.map(x=>x.v));
+  if(max===0) return [];
+  const win=vals.filter(x=>x.v===max);
+  return win.length===vals.length?[]:win.map(x=>x.id);
+}
+
+// ── derived caption under a cell ──
+function offerDerived(cmp,o,row){
+  const key=row.key, price=oNum(o.price)||0;
+  if(key==="buyerComm"||key==="sellerPaidCC"){
+    const c=o[key]||{}; const amt=oPctMoney(c,price);
+    if(c.value!==null&&c.value!==""&&price) return c.mode==="pct"?oMoney(amt):((amt/price*100).toFixed(2)+"% of price");
+    return "";
+  }
+  if(key==="earnest"){ const e=oNum(o.earnest); return (e!==null&&price)?((e/price*100).toFixed(2)+"% of price"):""; }
+  if(key==="escalation"&&o.escalation&&o.escalation.on==="Yes"){
+    const cap=oNum(o.escalation.cap), st=oNum(o.escalation.step);
+    return (st!==null||cap!==null) ? ("+"+(st!==null?oMoney(st):"?")+" to a ceiling of "+(cap!==null?oMoney(cap):"?")) : "";
+  }
+  if(key==="resolution"){ const base=offerDeadline(o,"inspection"), r=oNum(o.resolution); return (base&&r!==null)?("Resolves by "+oDateStr(oAddDays(base,r))):""; }
+  if(OFFER_CONTINGENCY_KEYS.indexOf(key)>-1){
+    const c=o[key]||{};
+    if(c.status==="Waived") return "Waived";
+    const dt=offerDeadline(o,key); let t=dt?oDateStr(dt):"";
+    if(key==="occupancy"&&c.party) t=(t?t+" · ":"")+c.party;
+    return t;
+  }
+  if(key==="closingDate"&&o.closingDate){
+    const cd=oDateOf(o.closingDate), base=oDateOf(o.contractDate);
+    return (cd&&base)?(Math.round((cd-base)/86400000)+" days from contract"):"";
+  }
+  if(key==="acceptDeadline"&&o.acceptDeadline) return oDateTimeStr(o.acceptDeadline);
+  return "";
+}
+
+// ── plain-language value, used by the client report ──
+function offerDisplay(cmp,o,row){
+  const c=o[row.key];
+  switch(row.type){
+    case "money":    { const v=oNum(o[row.key]); return v===null?"":oMoney(v); }
+    case "pctmoney": {
+      if(!c||c.value===null||c.value==="") return "None";
+      const amt=oPctMoney(c,oNum(o.price)||0);
+      return c.mode==="pct" ? (oNum(c.value)+"% · "+oMoney(amt)) : oMoney(amt);
+    }
+    case "escalation": {
+      if(!c||c.on!=="Yes") return "None";
+      const st=oNum(c.step), cap=oNum(c.cap);
+      return "Escalates"+(st!==null?" by "+oMoney(st):"")+(cap!==null?" to a ceiling of "+oMoney(cap):"");
+    }
+    case "select":   return o[row.key]||"";
+    case "date":     return oDateStr(oDateOf(o[row.key]));
+    case "datetime": return oDateTimeStr(o[row.key]);
+    case "days": {
+      const v=oNum(o[row.key]); if(v===null) return "";
+      const base=offerDeadline(o,"inspection");
+      return v+" days"+(base?" · by "+oDateStr(oAddDays(base,v)):"");
+    }
+    case "statustext": return (c&&c.status==="Waived")?"Waived":("Included"+(c&&c.note?": "+c.note:""));
+    case "statusdate": {
+      if(!c) return "";
+      if(c.status==="Waived") return "Waived";
+      const dt=offerDeadline(o,row.key), d=oNum(c.days);
+      if(dt&&d!==null&&!c.date) return d+" days · "+oDateStr(dt);
+      if(dt) return oDateStr(dt);
+      return d!==null?d+" days":"";
+    }
+    case "statusparty": {
+      if(!c) return "";
+      if(c.status==="Waived") return "Waived";
+      const dt=offerDeadline(o,row.key);
+      return (dt?oDateStr(dt):"Included")+(c.party?" · "+c.party:"");
+    }
+  }
+  return "";
+}
+
+// Marker beside the strongest figure on a line.
+const BestMark=({title})=><span title={title||"Strongest on this line"} style={{display:"inline-block",width:0,height:0,marginRight:5,verticalAlign:"middle",borderLeft:"4px solid transparent",borderRight:"4px solid transparent",borderBottom:"6px solid var(--accent-2)"}}/>;
+
+// ──────────── Offer entry grid ────────────
+const oLabelCell=(extra)=>tdS({position:"sticky",left:0,zIndex:1,minWidth:230,width:230,textAlign:"left",borderRight:"1px solid var(--line-2)",whiteSpace:"normal",fontFamily:SANS,...(extra||{})});
+const oCell={padding:"6px 8px",borderBottom:"1px solid var(--line)",borderRight:"1px solid var(--line)",verticalAlign:"top",minWidth:196,width:196};
+const oCalc=(extra)=>({padding:"8px 10px",textAlign:"right",fontFamily:SANS,fontSize:12.5,fontVariantNumeric:"tabular-nums",borderBottom:"1px solid var(--line)",borderRight:"1px solid var(--line)",...(extra||{})});
+const oDerived={fontSize:10.5,color:"var(--ink-2)",fontFamily:SANS,fontVariantNumeric:"tabular-nums",marginTop:3,minHeight:13};
+
+function OfferCell({cmp,o,row,setPath,setOffer}){
+  const put=(path)=>(v)=>setPath(o.id,path,v);
+  const val=(path)=>path.split(".").reduce((a,k)=>(a==null?a:a[k]),o);
+  const money=(path)=>inp(val(path),put(path),"0","text",{textAlign:"right",fontVariantNumeric:"tabular-nums"});
+  let body=null;
+
+  if(row.type==="money") body=money(row.key);
+  else if(row.type==="pctmoney") body=(
+    <div style={{display:"flex",gap:5}}>
+      <div style={{width:"52%"}}>{sel(val(row.key+".mode"),put(row.key+".mode"),[{v:"pct",l:"% of price"},{v:"flat",l:"Flat $"}])}</div>
+      <div style={{width:"48%"}}>{money(row.key+".value")}</div>
+    </div>);
+  else if(row.type==="escalation") body=(
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {sel(val("escalation.on"),put("escalation.on"),["No","Yes"])}
+      {o.escalation&&o.escalation.on==="Yes"&&<div style={{display:"flex",gap:5}}>
+        <div style={{width:"50%"}}>{inp(val("escalation.step"),put("escalation.step"),"Increment","text",{textAlign:"right"})}</div>
+        <div style={{width:"50%"}}>{inp(val("escalation.cap"),put("escalation.cap"),"Cap","text",{textAlign:"right"})}</div>
+      </div>}
+    </div>);
+  else if(row.type==="select") body=sel(val(row.key)||"",put(row.key),[""].concat(row.options));
+  else if(row.type==="date") body=inp(val(row.key),put(row.key),"","date");
+  else if(row.type==="datetime") body=inp(val(row.key),put(row.key),"","datetime-local");
+  else if(row.type==="days") body=inp(val(row.key),put(row.key),"Days","text",{textAlign:"right"});
+  else if(row.type==="statustext") body=(
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {sel(val(row.key+".status"),put(row.key+".status"),["Included","Waived"],o[row.key].status==="Waived"?{color:"var(--bad)",borderColor:"#e6c9c4"}:{})}
+      {o[row.key].status==="Included"&&inp(val(row.key+".note"),put(row.key+".note"),"Buyer's property and status")}
+    </div>);
+  else if(row.type==="statusdate"||row.type==="statusparty") body=(
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {sel(val(row.key+".status"),put(row.key+".status"),["Included","Waived"],o[row.key].status==="Waived"?{color:"var(--bad)",borderColor:"#e6c9c4"}:{})}
+      {o[row.key].status==="Included"&&<>
+        <div style={{display:"flex",gap:5}}>
+          <div style={{width:"42%"}}>{inp(val(row.key+".days"),put(row.key+".days"),"Days","text",{textAlign:"right"})}</div>
+          <div style={{width:"58%"}}>{inp(val(row.key+".date"),put(row.key+".date"),"","date")}</div>
+        </div>
+        {row.type==="statusparty"&&sel(val(row.key+".party"),put(row.key+".party"),OFFER_PARTIES)}
+      </>}
+    </div>);
+
+  const txt=offerDerived(cmp,o,row);
+  const best=offerBest(cmp.offers||[],row).indexOf(o.id)>-1;
+  return <td style={oCell}>
+    {body}
+    <div style={{...oDerived,color:txt==="Waived"?"var(--bad)":"var(--ink-2)"}}>{best&&<BestMark/>}{txt}</div>
+  </td>;
+}
+
+function OfferGrid({cmp,patch}){
+  const offers=cmp.offers||[];
+  const setOffers=(next)=>patch({offers:next});
+  const setOffer=(id,fn)=>setOffers(offers.map(o=>o.id===id?fn(o):o));
+  const setPath=(id,path,v)=>setOffer(id,o=>{
+    const c=JSON.parse(JSON.stringify(o)); const k=path.split("."); let cur=c;
+    for(let i=0;i<k.length-1;i++){ if(cur[k[i]]==null) cur[k[i]]={}; cur=cur[k[i]]; }
+    cur[k[k.length-1]]=v; return c;
+  });
+  const addOffer=()=>setOffers([...offers,newOfferRow(offers.length+1)]);
+  const dupLast=()=>{
+    if(!offers.length) return addOffer();
+    const copy=JSON.parse(JSON.stringify(offers[offers.length-1]));
+    copy.id=uid(); copy.name="Offer "+(offers.length+1); copy.buyer=""; copy.agent="";
+    setOffers([...offers,copy]);
+  };
+  const removeOffer=(o)=>{ if(confirm(`Remove ${o.name}?`)) setOffers(offers.filter(x=>x.id!==o.id)); };
+
+  if(offers.length===0) return <div style={{border:"1px solid var(--line)",borderRadius:"var(--r)",background:"var(--surface-2)",padding:"48px 20px",textAlign:"center"}}>
+    <div style={{fontFamily:SANS,fontSize:12.5,color:"var(--ink-2)",maxWidth:420,margin:"0 auto 14px",lineHeight:1.6}}>
+      No offers entered yet. Add a column for each offer you receive, then work down the column as you read the contract.
+    </div>
+    <button onClick={addOffer} style={btnPrimary}>Add the first offer</button>
+  </div>;
+
+  const bestNet=offerBestNet(cmp), bestWv=offerBestWaived(cmp);
+  const NET_ROWS=[["price","Purchase price",false],["listComm","Listing side commission",true],["buyComm","Buyer agent commission",true],
+    ["sellerCC","Seller paid closing costs",true],["buyerCC","Buyer paid closing costs (credit)",false],
+    ["title","Title and closing costs",true],["pror","Utility and tax prorations",true],["other",(cmp.costs&&cmp.costs.otherLabel)||"Other seller costs",true]];
+  const band=(title)=><tr className="hb-band"><th className="hb-stick" style={oLabelCell({fontFamily:SERIF,fontWeight:700,fontSize:13,paddingTop:12,paddingBottom:8})}>{title}</th><td colSpan={offers.length+1} style={{borderBottom:"1px solid var(--line-2)"}}/></tr>;
+
+  return <div className="hb-tablescroll" style={{border:"1px solid var(--line)",borderRadius:"var(--r)"}}>
+    <table className="hb-rows" style={{borderCollapse:"collapse",minWidth:"100%"}}>
+      <thead><tr>
+        <th className="hb-stick" style={{...thS,left:0,zIndex:4,minWidth:230,width:230,textAlign:"left",borderRight:"1px solid var(--line-2)",textTransform:"none",fontSize:11}}>
+          Terms as submitted
+          <div style={{fontWeight:400,fontSize:10,color:"var(--ink-2)",letterSpacing:0,textTransform:"none",marginTop:2}}>{offers.length} offer{offers.length>1?"s":""} side by side</div>
+        </th>
+        {offers.map(o=><th key={o.id} style={{...thS,minWidth:196,width:196,textTransform:"none",letterSpacing:0,verticalAlign:"top",padding:"9px 8px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{flex:1}}>{inp(o.name,v=>setOffer(o.id,x=>({...x,name:v})),"Offer name","text",{fontFamily:SERIF,fontSize:14,fontWeight:700,border:"none",background:"transparent",padding:"2px 0"})}</div>
+            <button onClick={()=>removeOffer(o)} title="Remove this offer" style={{...btnGhost,border:"none",background:"transparent",color:"var(--ink-3)",padding:"2px 5px",fontSize:15,lineHeight:1}}>×</button>
+          </div>
+          <div style={{marginTop:4}}>{inp(o.buyer,v=>setOffer(o.id,x=>({...x,buyer:v})),"Buyer name")}</div>
+          <div style={{marginTop:4}}>{inp(o.agent,v=>setOffer(o.id,x=>({...x,agent:v})),"Agent and brokerage")}</div>
+        </th>)}
+        <th style={{...thS,minWidth:140,width:140,verticalAlign:"top",padding:"9px 8px",textTransform:"none",letterSpacing:0}}>
+          <button onClick={addOffer} style={{...btnGhost,width:"100%"}}>+ Add offer</button>
+          <button onClick={dupLast} style={{...btnGhost,width:"100%",marginTop:5}}>Duplicate last</button>
+        </th>
+      </tr></thead>
+      <tbody>
+        {OFFER_SECTIONS.map(sec=><Fragment key={sec.id}>
+          {band(sec.title)}
+          {sec.rows.map(row=><tr key={row.key}>
+            <th className="hb-stick" style={oLabelCell({fontWeight:600})}>
+              {row.label}
+              {row.sub&&<div style={{fontWeight:400,fontSize:10.5,color:"var(--ink-2)",marginTop:1}}>{row.sub}</div>}
+            </th>
+            {offers.map(o=><OfferCell key={o.id} cmp={cmp} o={o} row={row} setPath={setPath} setOffer={setOffer}/>)}
+            <td style={oCell}/>
+          </tr>)}
+        </Fragment>)}
+
+        <tr>
+          <th className="hb-stick" style={oLabelCell({fontWeight:600})}>
+            Contingencies waived
+            <div style={{fontWeight:400,fontSize:10.5,color:"var(--ink-2)",marginTop:1}}>Out of {OFFER_CONTINGENCY_KEYS.length} tracked</div>
+          </th>
+          {offers.map(o=><td key={o.id} style={oCalc()}>{bestWv.indexOf(o.id)>-1&&<BestMark title="Fewest contingencies"/>}{offerWaived(o)} of {OFFER_CONTINGENCY_KEYS.length}</td>)}
+          <td style={oCell}/>
+        </tr>
+
+        {band("Estimated net to seller")}
+        {NET_ROWS.map(nr=><tr key={nr[0]}>
+          <th className="hb-stick" style={oLabelCell({fontWeight:400,color:"var(--ink-2)"})}>{nr[1]}</th>
+          {offers.map(o=>{ const n=offerNet(cmp,o); const v={price:n.price,listComm:-n.listComm,buyComm:-n.buyComm,sellerCC:-n.sellerCC,buyerCC:n.buyerCC,title:-n.title,pror:-n.pror,other:-n.other}[nr[0]];
+            return <td key={o.id} style={oCalc(nr[2]?{color:"var(--ink-2)"}:{})}>{oMoney(v)}</td>; })}
+          <td style={oCell}/>
+        </tr>)}
+        <tr>
+          <th className="hb-stick" style={oLabelCell({fontWeight:700,borderTop:"1px solid var(--accent)",borderBottom:"1px solid var(--accent)"})}>Estimated net proceeds</th>
+          {offers.map(o=><td key={o.id} style={oCalc({fontWeight:700,fontSize:14,color:"var(--accent)",background:"var(--surface-3)",borderTop:"1px solid var(--accent)",borderBottom:"1px solid var(--accent)"})}>
+            {bestNet.indexOf(o.id)>-1&&<BestMark title="Highest estimated net"/>}
+            {oNum(o.price)===null?"":oMoney(offerNet(cmp,o).net)}
+          </td>)}
+          <td style={oCell}/>
+        </tr>
+      </tbody>
+    </table>
+  </div>;
+}
+
+// ──────────── Client-facing report ────────────
+function OfferReport({cmp,profile,saveProfile,onClose}){
+  const offers=cmp.offers||[];
+  const groups=[]; for(let i=0;i<offers.length;i+=4) groups.push(offers.slice(i,i+4));
+  const rTh={textAlign:"right",padding:"7px 9px",borderBottom:"1px solid var(--line-2)",fontFamily:SERIF,fontSize:14,fontWeight:700,color:"var(--accent)",verticalAlign:"bottom"};
+  const rTh0={...rTh,textAlign:"left",width:230,fontFamily:SANS,fontSize:10,textTransform:"uppercase",letterSpacing:"0.09em",color:"var(--ink-2)",fontWeight:700};
+  const rTd={textAlign:"right",padding:"6px 9px",borderBottom:"1px solid var(--line)",fontFamily:SANS,fontSize:11.5,fontVariantNumeric:"tabular-nums",verticalAlign:"top"};
+  const rTd0={...rTd,textAlign:"left",fontWeight:400,color:"var(--ink-2)"};
+  const bandRow=(title,span)=><tr><td colSpan={span} style={{background:"var(--surface-3)",fontFamily:SERIF,fontSize:12.5,fontWeight:700,color:"var(--accent)",padding:"9px 9px 6px",borderBottom:"1px solid var(--line-2)"}}>{title}</td></tr>;
+
+  const headRow=(g)=><tr>
+    <th style={rTh0}>Term</th>
+    {g.map(o=><th key={o.id} style={rTh}>{o.name}
+      <div style={{fontFamily:SANS,fontSize:10.5,fontWeight:400,color:"var(--ink-2)",marginTop:2}}>{[o.buyer,o.agent].filter(Boolean).join(" · ")||"—"}</div>
+    </th>)}
+  </tr>;
+
+  const netTable=(g)=>{
+    const best=offerBestNet(cmp), bw=offerBestWaived(cmp);
+    const rows=[["Purchase price",n=>n.price],["Listing side commission",n=>-n.listComm],["Buyer agent commission",n=>-n.buyComm],
+      ["Seller paid closing costs",n=>-n.sellerCC],["Buyer paid closing costs (credit)",n=>n.buyerCC],
+      ["Title and closing costs",n=>-n.title],["Utility and tax prorations",n=>-n.pror],
+      [(cmp.costs&&cmp.costs.otherLabel)||"Other seller costs",n=>-n.other]];
+    return <table style={{width:"100%",borderCollapse:"collapse",marginTop:10}}>
+      <thead><tr><th style={rTh0}>Estimated net to seller</th>{g.map(o=><th key={o.id} style={rTh}>{o.name}<div style={{fontFamily:SANS,fontSize:10.5,fontWeight:400,color:"var(--ink-2)",marginTop:2}}>{o.buyer||"—"}</div></th>)}</tr></thead>
+      <tbody>
+        {rows.map((r,i)=><tr key={i}><td style={rTd0}>{r[0]}</td>{g.map(o=><td key={o.id} style={rTd}>{oMoney(r[1](offerNet(cmp,o)))}</td>)}</tr>)}
+        <tr>
+          <td style={{...rTd0,fontWeight:700,color:"var(--accent)",borderTop:"1px solid var(--accent)",borderBottom:"1px solid var(--accent)",background:"var(--surface-3)"}}>Estimated net proceeds before loan payoff</td>
+          {g.map(o=><td key={o.id} style={{...rTd,fontWeight:700,fontSize:13,color:"var(--accent)",borderTop:"1px solid var(--accent)",borderBottom:"1px solid var(--accent)",background:"var(--surface-3)"}}>
+            {best.indexOf(o.id)>-1&&<BestMark title="Highest estimated net"/>}{oMoney(offerNet(cmp,o).net)}</td>)}
+        </tr>
+        <tr><td style={rTd0}>Contingencies waived</td>{g.map(o=><td key={o.id} style={rTd}>{bw.indexOf(o.id)>-1&&<BestMark title="Fewest contingencies"/>}{offerWaived(o)} of {OFFER_CONTINGENCY_KEYS.length}</td>)}</tr>
+      </tbody>
+    </table>;
+  };
+
+  const secTable=(g,sections)=><table style={{width:"100%",borderCollapse:"collapse",marginTop:10}}>
+    <thead>{headRow(g)}</thead>
+    <tbody>{sections.map(sec=><Fragment key={sec.id}>
+      {bandRow(sec.title,g.length+1)}
+      {sec.rows.map(row=>{ const best=offerBest(offers,row); return <tr key={row.key}>
+        <td style={rTd0}>{row.label}</td>
+        {g.map(o=><td key={o.id} style={rTd}>{best.indexOf(o.id)>-1&&<BestMark/>}{offerDisplay(cmp,o,row)||"—"}</td>)}
+      </tr>; })}
+    </Fragment>)}</tbody>
+  </table>;
+
+  return <ReportFrame wide title="Offer Comparison"
+    subtitle={`${cmp.address||"Property"}${cmp.client?` · prepared for ${cmp.client}`:""} · ${offers.length} offer${offers.length===1?"":"s"} · ${oDateStr(oDateOf(cmp.date))}`}
+    profile={profile} saveProfile={saveProfile} onClose={onClose}>
+    <div style={{fontSize:11.5,lineHeight:1.6,marginBottom:14}}>
+      Each offer is shown on the same lines so the differences are easy to find. Money comes first, then the contract dates,
+      then the contingencies each buyer kept or waived. A marker sits beside the strongest figure on a line where one offer clearly leads.
+    </div>
+
+    {groups.map((g,i)=><div key={"net"+i} style={{marginBottom:18}}>
+      <div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"var(--accent)"}}>Estimated proceeds{groups.length>1?` · offers ${i*4+1} to ${i*4+g.length}`:""}</div>
+      {netTable(g)}
+      <div style={{fontSize:10.5,color:"var(--ink-2)",fontFamily:SANS,marginTop:8,lineHeight:1.55}}>
+        <strong style={{color:"var(--ink)"}}>These are estimates.</strong> Figures are before any loan payoff, unpaid property taxes, liens,
+        or seller concessions agreed after acceptance. Title, closing, and proration amounts are placeholders until the title company issues the settlement statement.
+      </div>
+    </div>)}
+
+    {groups.map((g,i)=><div key={"terms"+i} style={{marginBottom:18}}>
+      <div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"var(--accent)"}}>Offer terms{groups.length>1?` · offers ${i*4+1} to ${i*4+g.length}`:""}</div>
+      {secTable(g,[OFFER_SECTIONS[0],OFFER_SECTIONS[1]])}
+    </div>)}
+
+    {groups.map((g,i)=><div key={"cont"+i} style={{marginBottom:18}}>
+      <div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"var(--accent)"}}>Contingencies{groups.length>1?` · offers ${i*4+1} to ${i*4+g.length}`:""}</div>
+      {secTable(g,[OFFER_SECTIONS[2]])}
+      <div style={{fontSize:10.5,color:"var(--ink-2)",fontFamily:SANS,marginTop:8}}>
+        Deadlines count from the contract date shown above. Where a date was written into the contract, that date is used instead.
+      </div>
+    </div>)}
+
+    {offers.some(o=>o.notes)&&<div style={{marginBottom:18}}>
+      <div style={{fontFamily:SERIF,fontSize:15,fontWeight:700,color:"var(--accent)"}}>Notes</div>
+      <table style={{width:"100%",borderCollapse:"collapse",marginTop:10}}><tbody>
+        {offers.map(o=><tr key={o.id}><td style={{...rTd0,width:230}}>{o.name}{o.buyer?` · ${o.buyer}`:""}</td><td style={{...rTd,textAlign:"left"}}>{o.notes||"—"}</td></tr>)}
+      </tbody></table>
+    </div>}
+
+    <div style={{fontSize:10.5,color:"var(--ink-2)",fontFamily:SANS,lineHeight:1.55,marginTop:6}}>
+      <strong style={{color:"var(--ink)"}}>How to read this.</strong> Price is only part of the comparison. An offer with a lower price, fewer contingencies,
+      and a closing date that fits your timeline can be worth more than the highest number on the page. Nothing here is legal, tax, or accounting advice.
+      Final figures come from the title company at closing.
+    </div>
+  </ReportFrame>;
+}
+
+// ──────────── My Offers tab ────────────
+function MyOffers({comparisons,saveComparisons,escrow,cmas,contacts,profile,saveProfile,onPromote}){
+  const [openId,setOpenId]=useState(null);
+  const [reportId,setReportId]=useState(null);
+  const [search,setSearch]=useState("");
+  const [statusFilter,setStatusFilter]=useState("All");
+  const [saveState,setSaveState]=useState("");   // "" | "saving" | "saved"
+  const [draft,setDraft]=useState(null);
+  const timer=useRef(null);
+  const draftRef=useRef(null);
+
+  const openCmp=openId?comparisons.find(c=>c.id===openId):null;
+  // The open comparison is edited as a local draft. useStore.save upserts the
+  // whole collection to Supabase, so committing on every keystroke would mean a
+  // network write per character; a short debounce batches them instead.
+  useEffect(()=>{
+    const d=openCmp?JSON.parse(JSON.stringify(openCmp)):null;
+    draftRef.current=d;               // must move with openId, or the first
+    setDraft(d);                      // edit on a newly opened comparison
+  },[openId]);                        // would spread the previous one's fields
+
+  const commit=(next)=>{ saveComparisons(comparisons.map(c=>c.id===next.id?next:c)); setSaveState("saved"); };
+  const patch=(p)=>{
+    const next={...(draftRef.current||draft),...p};
+    draftRef.current=next; setDraft(next); setSaveState("saving");
+    if(timer.current) clearTimeout(timer.current);
+    timer.current=setTimeout(()=>{ commit(draftRef.current); },900);
+  };
+  const flush=()=>{ if(timer.current){ clearTimeout(timer.current); timer.current=null; if(draftRef.current) commit(draftRef.current); } };
+  // Switching tabs unmounts this component; without flushing, a pending
+  // debounce would drop the last edits. Held in a ref so the cleanup sees
+  // the current closure rather than the one from first render.
+  const flushRef=useRef(flush); flushRef.current=flush;
+  useEffect(()=>()=>{ flushRef.current(); },[]);
+  const closeCmp=()=>{ flush(); setOpenId(null); setDraft(null); draftRef.current=null; setSaveState(""); };
+
+  const filtered=useMemo(()=>{
+    let rows=[...comparisons];
+    if(statusFilter!=="All") rows=rows.filter(c=>(c.status||"Collecting")===statusFilter);
+    if(search){ const q=search.toLowerCase(); rows=rows.filter(c=>(c.address||"").toLowerCase().includes(q)||(c.client||"").toLowerCase().includes(q)||(c.zip||"").includes(q)); }
+    return rows.sort((a,b)=>parseDate(b.date)-parseDate(a.date));
+  },[comparisons,statusFilter,search]);
+  const counts=useMemo(()=>{const m={};comparisons.forEach(c=>{const s=c.status||"Collecting";m[s]=(m[s]||0)+1;});return m;},[comparisons]);
+
+  const addCmp=(seed)=>{ const rec=newComparison(seed); saveComparisons([rec,...comparisons]); setOpenId(rec.id); };
+  const delCmp=(id)=>{ if(confirm("Delete this offer comparison?")){ saveComparisons(comparisons.filter(c=>c.id!==id)); if(openId===id) closeCmp(); } };
+
+  // Start from a pipeline deal so the property and seller carry over.
+  const [pickDeal,setPickDeal]=useState(false);
+  const dealSeed=(r)=>{ setPickDeal(false); addCmp({address:r.address,zip:r.zip,client:r.sellerName,linkedDeal:r.id}); };
+
+  const cmp=draft;
+  if(reportId){ const rc=comparisons.find(c=>c.id===reportId); if(rc) return <OfferReport cmp={rc} profile={profile} saveProfile={saveProfile} onClose={()=>setReportId(null)}/>; }
+
+  if(cmp){
+    const costs=cmp.costs||{};
+    const setCost=(k,v)=>patch({costs:{...costs,[k]:v}});
+    const accepted=(cmp.offers||[]).find(o=>o.id===cmp.acceptedId);
+    return <div>
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,flexWrap:"wrap",marginBottom:14}}>
+        <button onClick={closeCmp} style={btnGhost}>← All comparisons</button>
+        <div style={{flex:1,minWidth:200}}>
+          <div style={{fontFamily:SERIF,fontSize:19,fontWeight:700,color:"var(--ink)"}}>{cmp.address||"Untitled comparison"}</div>
+          <div style={{fontFamily:SANS,fontSize:11.5,color:"var(--ink-2)",marginTop:2}}>
+            {(cmp.client||"No seller named")} · {(cmp.offers||[]).length} offer{(cmp.offers||[]).length===1?"":"s"}
+            {saveState&&<span style={{marginLeft:8,color:saveState==="saving"?"var(--ink-3)":"var(--ok)"}}>{saveState==="saving"?"Saving…":"Saved"}</span>}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {sel(cmp.status||"Collecting",v=>patch({status:v}),OFFER_STATUSES,{width:"auto",minWidth:130})}
+          <button onClick={()=>{flush();setReportId(cmp.id);}} style={{...btnGhost,borderColor:"var(--accent)",color:"var(--accent)",fontWeight:600}}>Client view</button>
+          {accepted&&!cmp.promotedTo&&<button onClick={()=>{flush();onPromote(cmp,accepted);}} title="Create a pipeline deal from the accepted offer" style={{...btnGhost,borderColor:"var(--ok)",color:"var(--ok)",fontWeight:600}}>→ Promote to Pipeline</button>}
+          {cmp.promotedTo&&<span title="A pipeline deal was created from this comparison" style={{fontSize:11,fontFamily:SANS,color:"var(--ok)",fontWeight:700,border:"1px solid var(--ok)",borderRadius:5,padding:"6px 10px"}}>In Pipeline</span>}
+          <button onClick={()=>delCmp(cmp.id)} style={{...btnGhost,color:"var(--bad)"}}>Delete</button>
+        </div>
+      </div>
+
+      <Section title="Listing">
+        <div className="hb-grid-4">
+          <Field label="Property address">{inp(cmp.address,v=>patch({address:v}),"3851 Neosho St")}</Field>
+          <Field label="Zip">{inp(cmp.zip,v=>patch({zip:v}),"63116")}</Field>
+          <Field label="Prepared for">{inp(cmp.client,v=>patch({client:v}),"Seller name")}</Field>
+          <Field label="Date">{inp(cmp.date,v=>patch({date:v}),"","date")}</Field>
+        </div>
+      </Section>
+
+      <Section title="Seller costs — applied to every offer">
+        <div className="hb-grid-4">
+          <Field label="Listing side commission">
+            <div style={{display:"flex",gap:5}}>
+              <div style={{width:78}}>{sel(costs.listCommMode||"pct",v=>setCost("listCommMode",v),[{v:"pct",l:"%"},{v:"flat",l:"$"}])}</div>
+              <div style={{flex:1}}>{inp(costs.listComm,v=>setCost("listComm",v),"3","text",{textAlign:"right"})}</div>
+            </div>
+          </Field>
+          <Field label="Title and closing">{inp(costs.title,v=>setCost("title",v),"1,850","text",{textAlign:"right"})}</Field>
+          <Field label="Utility and tax prorations">{inp(costs.prorations,v=>setCost("prorations",v),"900","text",{textAlign:"right"})}</Field>
+          <Field label="Other seller cost">
+            <div style={{display:"flex",gap:5}}>
+              <div style={{flex:1}}>{inp(costs.otherLabel,v=>setCost("otherLabel",v),"Label")}</div>
+              <div style={{width:96}}>{inp(costs.other,v=>setCost("other",v),"0","text",{textAlign:"right"})}</div>
+            </div>
+          </Field>
+        </div>
+      </Section>
+
+      <OfferGrid cmp={cmp} patch={patch}/>
+
+      {(cmp.offers||[]).length>0&&<Section title="Agent notes and outcome">
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {(cmp.offers||[]).map(o=><div key={o.id} style={{display:"flex",gap:10,alignItems:"flex-start",flexWrap:"wrap"}}>
+            <div style={{width:150,flexShrink:0,fontFamily:SANS,fontSize:12,fontWeight:600,color:"var(--ink)",paddingTop:7}}>{o.name}{o.buyer?<div style={{fontWeight:400,fontSize:11,color:"var(--ink-2)"}}>{o.buyer}</div>:null}</div>
+            <div style={{flex:1,minWidth:220}}>{inp(o.notes,v=>patch({offers:cmp.offers.map(x=>x.id===o.id?{...x,notes:v}:x)}),"Notes for the seller on this offer")}</div>
+            <button onClick={()=>patch({acceptedId:cmp.acceptedId===o.id?"":o.id})}
+              style={cmp.acceptedId===o.id?{...btnPrimary,background:"var(--ok)",borderColor:"var(--ok)"}:btnGhost}>
+              {cmp.acceptedId===o.id?"✓ Accepted":"Mark accepted"}
+            </button>
+          </div>)}
+        </div>
+      </Section>}
+    </div>;
+  }
+
+  return <div>
+    <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+      <div style={{flex:1,minWidth:200}}>{inp(search,setSearch,"Search property, seller, zip…")}</div>
+      <button onClick={()=>addCmp()} style={btnPrimary}>+ New comparison</button>
+      <button onClick={()=>setPickDeal(!pickDeal)} style={btnGhost}>From a pipeline deal</button>
+    </div>
+
+    {pickDeal&&<Section title="Start from a pipeline deal">
+      {escrow.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS}}>No active pipeline deals.</div>:
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {escrow.map(r=><button key={r.id} onClick={()=>dealSeed(r)} style={{textAlign:"left",border:"1px solid var(--line)",borderRadius:"var(--r-sm)",padding:"9px 11px",background:"var(--surface)",cursor:"pointer",fontFamily:SANS}}>
+          <span style={{fontWeight:600,fontSize:13,color:"var(--ink)"}}>{r.address||"(no address)"}</span>
+          <span style={{fontSize:11,color:"var(--ink-2)",marginLeft:8}}>{r.status}{r.sellerName?` · ${r.sellerName}`:""}{r.price?` · ${fmt(r.price)}`:""}</span>
+        </button>)}
+      </div>}
+    </Section>}
+
+    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+      {["All",...OFFER_STATUSES].map(s=><button key={s} onClick={()=>setStatusFilter(s)} style={chip(statusFilter===s)}>
+        {s} ({s==="All"?comparisons.length:(counts[s]||0)})
+      </button>)}
+    </div>
+
+    {filtered.length===0
+      ? <div style={{border:"1px solid var(--line)",borderRadius:"var(--r)",background:"var(--surface-2)",padding:"46px 20px",textAlign:"center",fontFamily:SANS,fontSize:12.5,color:"var(--ink-2)"}}>
+          No offer comparisons yet. Start one when the first offer arrives, then add a column for each offer that follows.
+        </div>
+      : <div className="hb-grid-3">
+          {filtered.map(c=>{ const sc=OFFER_STATUS_COLORS[c.status||"Collecting"]; const best=offerBestNet(c);
+            const top=best.length?offerNet(c,(c.offers||[]).find(o=>o.id===best[0])).net:null;
+            return <div key={c.id} onClick={()=>setOpenId(c.id)} className="hb-hover" style={{background:"var(--surface)",border:"1px solid var(--line)",borderLeft:`3px solid ${sc.text}`,borderRadius:"var(--r)",padding:"12px 14px",cursor:"pointer",boxShadow:"var(--sh-1)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:8}}>
+                <div style={{fontWeight:600,fontSize:14,color:"var(--ink)",fontFamily:SANS}}>{c.address||"Untitled"}</div>
+                <Pill color={sc}>{c.status||"Collecting"}</Pill>
+              </div>
+              <div style={{fontSize:12,color:"var(--ink-2)",fontFamily:SANS,marginBottom:10}}>{c.client||"—"} · {c.zip||"—"} · {c.date}</div>
+              <div style={{display:"flex",gap:16}}>
+                <div><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em"}}>Offers</div>
+                  <div style={{fontSize:15,fontWeight:600,fontFamily:SANS}}>{(c.offers||[]).length}</div></div>
+                <div><div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em"}}>Best net</div>
+                  <div style={{fontSize:15,fontWeight:600,color:"var(--ok)",fontFamily:SANS}}>{top===null?"—":oMoney(top)}</div></div>
+              </div>
+              {c.promotedTo&&<div style={{fontSize:10.5,color:"var(--ok)",fontFamily:SANS,marginTop:8,fontWeight:600}}>In Pipeline</div>}
+            </div>; })}
+        </div>}
+  </div>;
+}
+
 // ════════════════════════ MY CRM ════════════════════════
 function MyCRM({contacts,saveContacts,addrOptions}) {
   const S=useSettings();
@@ -3136,7 +3784,7 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
         <Field label="Default landing tab">
           <select value={s.defaultTab||"home"} onChange={e=>saveSettings({...s,defaultTab:e.target.value})} style={{padding:"7px 9px",fontSize:13,borderRadius:6,border:"1px solid var(--line-2)",fontFamily:SANS,width:"100%",boxSizing:"border-box",background:"#fff"}}>
-            {[["home","Home"],["sales","My Sales"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+            {[["home","Home"],["sales","My Sales"],["offers","My Offers"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
         <Field label="Upcoming-deadline window (days)">{numIn((s.dashboard&&s.dashboard.deadlineDays)??14,v=>saveSettings({...s,dashboard:{...(s.dashboard||{}),deadlineDays:+v||0}}))}</Field>
