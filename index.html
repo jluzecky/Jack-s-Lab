@@ -468,7 +468,6 @@ const SEED_PROFILE = {
           { id:"i6", name:"MLS listing and syndication", desc:"Full MLS entry syndicated to Zillow, Realtor.com, Redfin, and the major portals buyers actually search." },
           { id:"i7", name:"Listing copy and photo sequencing", desc:"Written and ordered deliberately — the first three photos determine whether a buyer keeps scrolling." },
           { id:"i8", name:"Signage, lockbox, and showing management", desc:"Showings scheduled around your life, with feedback collected and passed along after each one." },
-          { id:"i9", name:"Open houses and broker previews", desc:"Scheduled where they help, skipped where they don't." },
           { id:"i10", name:"Targeted digital promotion", desc:"Paid and organic placement aimed at buyers searching your price band and neighborhood." },
         ]},
         { id:"g3", title:"Offers and negotiation", items:[
@@ -2472,11 +2471,20 @@ function CmaReport({cma,adjLib,profile,saveProfile,onClose}) {
               <div style={{position:"absolute",left:`${pos(med)}%`,top:-4,bottom:-4,width:2,marginLeft:-1,background:ACC}}/>
               <div style={{position:"absolute",left:`${pos(suggested)}%`,top:-5,bottom:-5,width:3,marginLeft:-1.5,background:INK}}/>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9.5,fontFamily:SN,color:MUT,fontVariantNumeric:"tabular-nums"}}>
-              <span>{fmt(low)} <span style={{opacity:0.7}}>lowest comp</span></span>
-              <span style={{color:ACC,fontWeight:700}}>Median {fmt(med)}</span>
-              <span><span style={{opacity:0.7}}>highest comp</span> {fmt(high)}</span>
-            </div>
+            {/* The median was the middle item of a space-between row, so it sat at
+                the bar's midpoint regardless of where the median actually fell.
+                Anchor it to its own tick instead. Absolute positioning keeps this
+                row exactly as tall as it was, since the page has no spare height.
+                Near an end, the adjacent caption is dropped so labels cannot collide. */}
+            {(()=>{const pMed=pos(med);return (
+            <div style={{position:"relative",height:19,marginTop:2,fontSize:9.5,fontFamily:SN,color:MUT,fontVariantNumeric:"tabular-nums"}}>
+              <span style={{position:"absolute",left:0,top:6,whiteSpace:"nowrap"}}>{fmt(low)}{pMed>=24&&<> <span style={{opacity:0.7}}>lowest comp</span></>}</span>
+              <span style={{position:"absolute",right:0,top:6,whiteSpace:"nowrap"}}>{pMed<=76&&<><span style={{opacity:0.7}}>highest comp</span> </>}{fmt(high)}</span>
+              <div style={{position:"absolute",left:`${pMed}%`,top:0,transform:"translateX(-50%)",whiteSpace:"nowrap",textAlign:"center"}}>
+                <div style={{width:2,height:4,background:ACC,margin:"0 auto"}}/>
+                <div style={{color:ACC,fontWeight:700,marginTop:2}}>Median {fmt(med)}</div>
+              </div>
+            </div>);})()}
           </div>}
 
           {adj.length>0&&<div style={{fontSize:11.5,lineHeight:1.6,marginTop:14,color:INK,fontFamily:SER,flexShrink:0}}>
