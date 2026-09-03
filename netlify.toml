@@ -1,0 +1,23 @@
+# Homebase is plain static HTML with no build step: the files in the repo root
+# are the files that ship. Connecting Netlify to this repo means deploying by
+# pushing, so the number of files stops mattering.
+
+[build]
+  publish = "."
+  command = ""
+
+# HTML is revalidated every load so a deploy is visible immediately rather than
+# after a cache expiry. The app is a single document, so this is cheap.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # SAMEORIGIN, not DENY: the offer builder is previewed in an iframe from
+    # inside Homebase, and DENY would break that.
+    X-Frame-Options = "SAMEORIGIN"
