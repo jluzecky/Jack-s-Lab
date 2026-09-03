@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offer Builder | Luzecky Real Estate</title>
+<!-- Deliberately self-contained: no external fonts, scripts, or styles, and no
+     database credentials. This page is handed to clients, so it must not be
+     able to reach anything in Homebase, and it should load instantly on a
+     phone with no network round-trips. -->
+<style>
+  :root{
+    --ink:#1c1f26;      --ink-2:#5c626e;    --ink-3:#8b909b;
+    --paper:#faf9f4;    --surface:#ffffff;  --surface-2:#fdfcf9; --surface-3:#f2f0e9;
+    --line:#e6e2d8;     --line-2:#d3cec1;   --line-3:#b8b3a5;
+    --accent:#2f4034;   --accent-2:#b5a36f;
+    --ok:#0f7a52;       --warn:#8a6d1f;     --bad:#b3392c;
+    --r-sm:7px;         --r:10px;
+    --sh-1:0 1px 2px rgba(28,31,38,0.05);
+    --sh-2:0 2px 8px rgba(28,31,38,0.07), 0 1px 2px rgba(28,31,38,0.04);
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+  :focus-visible{outline:2px solid rgba(181,163,111,0.55);outline-offset:1px}
+  .num{font-variant-numeric:tabular-nums}
+
+  header{background:var(--accent);color:#f2f0e9;padding:26px 24px 22px}
+  .brand{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:-0.2px}
+  .brand small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;margin-top:5px;font-weight:400}
+  h1{font-family:var(--serif);font-weight:700;font-size:31px;margin:20px 0 5px;letter-spacing:-0.5px}
+  .lede{margin:0;opacity:.85;max-width:640px;font-size:14px}
+  .ctx{margin:14px 0 0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+
+  main{display:grid;grid-template-columns:1fr 380px;gap:24px;padding:24px 24px 56px;align-items:start}
+  /* Grid items default to min-width:auto, so the summary panel's nowrap stat
+     rows set a min-content floor that widened the whole track past the
+     viewport on a phone. Let the tracks shrink, and let those rows wrap. */
+  main>*{min-width:0}
+  @media(max-width:980px){main{grid-template-columns:1fr}}
+
+  section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px 14px;margin-bottom:16px;box-shadow:var(--sh-1)}
+  h2{font-family:var(--serif);font-weight:700;font-size:17px;margin:0 0 3px;color:var(--ink)}
+  .hint{color:var(--ink-2);font-size:13px;margin:0 0 14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  @media(max-width:620px){.row{grid-template-columns:1fr}}
+  label{display:block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px}
+  .field{margin-bottom:13px}
+  .money{position:relative}
+  .money>span{position:absolute;left:10px;top:8px;color:var(--ink-3)}
+  .money input{padding-left:23px}
+  input,select{width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums}
+  input:focus,select:focus{border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(181,163,111,0.16)}
+  .sub{font-size:12px;color:var(--ink-2);margin-top:4px}
+
+  .opts{display:grid;gap:7px}
+  /* .opt is itself a <label>, so it picks up the field-label rule above and
+     rendered every choice in uppercase with letter-spacing. Reset it here. */
+  .opt{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);cursor:pointer;background:var(--surface);transition:border-color .12s ease,background .12s ease;
+       text-transform:none;letter-spacing:normal;font-size:14px;font-weight:400;color:var(--ink);margin-bottom:0}
+  .opt:hover{border-color:var(--line-3)}
+  .opt:has(input:checked){border-color:var(--accent);background:#f4f6f3}
+  .opt input{margin-top:3px;width:auto}
+  .opt b{display:block;font-weight:600;font-size:14px}
+  .opt em{font-style:normal;font-size:12.5px;color:var(--ink-2)}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+  .tag.buyer{background:#e0e7ff;color:#3730a3}
+  .tag.seller{background:#dcfce7;color:#166534}
+  .tag.mid{background:#f3f4f6;color:#374151}
+
+  aside{position:sticky;top:16px}
+  @media(max-width:980px){aside{position:static}}
+  .summary{background:var(--accent);color:#f2f0e9;border-radius:var(--r);padding:20px;box-shadow:var(--sh-2)}
+  .summary h2{color:#f2f0e9;font-size:16px}
+  .meter{margin:14px 0 4px}
+  .meter-bar{height:9px;background:rgba(255,255,255,.16);border-radius:5px;overflow:hidden}
+  .meter-fill{height:100%;background:var(--accent-2);width:0;transition:width .3s ease}
+  .meter-lab{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.72;margin-top:6px}
+  .verdict{font-family:var(--serif);font-size:22px;font-weight:700;margin:10px 0 2px}
+  .verdict-sub{opacity:.85;font-size:13px;margin:0 0 14px}
+  .stat{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.15);font-size:13.5px;flex-wrap:wrap}
+  .stat>span{min-width:0}
+  /* No nowrap: a currency figure has no break opportunity of its own, but the
+     earnest-money line is a sentence and must be allowed to wrap on a phone. */
+  .stat b{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;min-width:0}
+  .stat.total{border-top:2px solid var(--accent-2);padding-top:10px}
+  .stat.total b{font-size:16px}
+  .flags{margin:14px 0 0;padding:0;list-style:none}
+  .flags li{font-size:12.5px;padding:6px 0 6px 15px;position:relative;opacity:.92;line-height:1.5}
+  .flags li:before{content:"";position:absolute;left:0;top:12px;width:5px;height:5px;background:var(--accent-2);border-radius:50%}
+
+  .terms{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-top:16px;box-shadow:var(--sh-1)}
+  .terms h3{font-family:var(--serif);font-weight:700;font-size:15px;margin:0 0 8px}
+  .terms p{margin:0;font-size:13.5px;white-space:pre-line;line-height:1.6}
+  .btn{margin-top:12px;padding:8px 15px;border:1px solid var(--accent);border-radius:var(--r-sm);background:var(--accent);color:#fff;font-weight:600;font-size:12.5px;cursor:pointer;box-shadow:var(--sh-1)}
+  .btn.ghost{background:var(--surface);color:var(--accent);margin-left:7px}
+  footer{padding:0 24px 40px;color:var(--ink-2);font-size:12px;max-width:1120px;margin:0 auto;line-height:1.6}
+
+  @media(max-width:520px){
+    .opt{grid-template-columns:20px 1fr}
+    .opt .tag{grid-column:2;justify-self:start;margin-top:6px}
+  }
+  @media(max-width:560px) and (pointer:coarse){ input,select{font-size:16px;padding:9px 11px} .btn{min-height:38px} }
+  @media(prefers-reduced-motion:reduce){.meter-fill,.opt{transition:none}}
+  @media print{
+    header{background:#fff;color:var(--ink);padding:0 0 12px;border-bottom:2px solid var(--ink)}
+    .btn,.hint,.lede{display:none}
+    main{grid-template-columns:1fr;padding:12px 0}
+    aside{position:static}
+    .summary{background:#fff;color:var(--ink);border:1px solid var(--line-2);box-shadow:none}
+    .summary h2,.verdict{color:var(--ink)}
+    .stat{border-top:1px solid var(--line)}
+    section.card{box-shadow:none;break-inside:avoid}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">Luzecky Real Estate<small>1 Degree Realty &nbsp;·&nbsp; St. Louis</small></div>
+    <h1>Offer Builder</h1>
+    <p class="lede">Set your terms and see how the offer reads from the seller's side of the table, what it costs you at closing, and where your money is exposed. Change any input and everything updates.</p>
+    <p class="ctx" id="ctx" hidden></p>
+  </div>
+</header>
+
+<main class="wrap">
+<div>
+  <section class="card">
+    <h2>The property</h2>
+    <p class="hint">Numbers from the listing and the CMA. Your agent fills these in.</p>
+    <div class="row">
+      <div class="field"><label for="list">List price</label><div class="money"><span>$</span><input id="list" type="number" step="1000" value="1050000"></div></div>
+      <div class="field"><label for="appr">Supportable appraisal (CMA high end)</label><div class="money"><span>$</span><input id="appr" type="number" step="1000" value="1075000"></div><div class="sub">The highest price an appraiser could likely justify.</div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="muni">Municipality (occupancy inspection)</label><input id="muni" type="text" value="Kirkwood"></div>
+      <div class="field"><label for="comp">Competing offers known</label><select id="comp"><option value="0">None known</option><option value="1" selected>One other offer</option><option value="2">Multiple offers</option></select></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Price and money down</h2>
+    <p class="hint">Your offer price, how much you are putting down, and the deposit that shows you are serious.</p>
+    <div class="row">
+      <div class="field"><label for="offer">Offer price</label><div class="money"><span>$</span><input id="offer" type="number" step="1000" value="1050000"></div><div class="sub" id="offerPct"></div></div>
+      <div class="field"><label for="em">Earnest money</label><div class="money"><span>$</span><input id="em" type="number" step="500" value="10000"></div><div class="sub" id="emPct"></div></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="down">Down payment (%)</label><input id="down" type="number" min="0" max="100" step="1" value="20"><div class="sub">Percent of offer price. Earnest money counts toward this at closing.</div></div>
+      <div class="field"><label for="close">Days to close</label><input id="close" type="number" min="7" max="120" step="1" value="30"><div class="sub">Cash and no-financing offers can close faster.</div></div>
+    </div>
+    <div class="field"><label for="concess">Seller-paid closing costs requested</label><div class="money"><span>$</span><input id="concess" type="number" step="500" value="0"></div><div class="sub">Every dollar requested here is a dollar off the seller's net.</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Buyer inspections</h2>
+    <p class="hint">Inspections protect you. The less you ask of the seller afterward, the stronger the offer.</p>
+    <div class="opts" id="insp">
+      <label class="opt"><input type="radio" name="insp" value="0" checked><span><b>Full inspections, right to negotiate, right to back out</b><em>Standard approach. You can ask for repairs or credits on anything found.</em></span><span class="tag buyer">Most protection</span></label>
+      <label class="opt"><input type="radio" name="insp" value="1"><span><b>Full inspections, negotiate only items over a threshold</b><em>You commit to absorbing small items. Set the threshold below.</em></span><span class="tag mid">Balanced</span></label>
+      <label class="opt"><input type="radio" name="insp" value="2"><span><b>Full inspections, no repair negotiation, right to back out</b><em>You inspect for your own knowledge. Your only remedy is walking away.</em></span><span class="tag seller">Seller favored</span></label>
+      <label class="opt"><input type="radio" name="insp" value="3"><span><b>No inspections</b><em>You take the home as-is with no inspection period. Rarely advised.</em></span><span class="tag seller">Strongest</span></label>
+    </div>
+    <div class="field" id="threshWrap" style="margin-top:12px;display:none"><label for="thresh">Negotiation threshold</label><div class="money"><span>$</span><input id="thresh" type="number" step="500" value="2500"></div><div class="sub">You will only ask the seller to address items estimated above this amount.</div></div>
+  </section>
+
+  <section class="card">
+    <h2><span id="muniLabel">Kirkwood</span> occupancy inspection</h2>
+    <p class="hint">Many St. Louis municipalities require a passed occupancy inspection before anyone can move in.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="occ" value="0" checked><span><b>Seller completes and passes before closing</b><em>Seller handles any required repairs. Can delay closing if items are found.</em></span><span class="tag buyer">Buyer favored</span></label>
+      <label class="opt"><input type="radio" name="occ" value="1"><span><b>Buyer assumes responsibility after closing</b><em>You handle the inspection and repairs. No move-in until it passes.</em></span><span class="tag seller">Seller favored</span></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Financing</h2>
+    <p class="hint">A financing contingency lets you exit with your earnest money if the loan falls through.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="fin" value="0" checked><span><b>Contingent on financing</b><em>Earnest money refundable if the loan is denied.</em></span><span class="tag buyer">Most protection</span></label>
+      <label class="opt"><input type="radio" name="fin" value="1"><span><b>Contingent on financing, earnest money non-refundable</b><em>You can still exit if the loan fails, but the seller keeps the deposit.</em></span><span class="tag mid">Balanced</span></label>
+      <label class="opt"><input type="radio" name="fin" value="2"><span><b>Not contingent on financing</b><em>Loan or cash, you close regardless. Failure to close puts the deposit and more at risk.</em></span><span class="tag seller">Strongest</span></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Appraisal</h2>
+    <p class="hint">If the appraisal comes in below the contract price, someone has to cover the gap.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="app" value="0" checked><span><b>Contingent on appraisal</b><em>Low appraisal lets you renegotiate or walk.</em></span><span class="tag buyer">Most protection</span></label>
+      <label class="opt"><input type="radio" name="app" value="1"><span><b>Contingent, but you cover a gap up to a set amount</b><em>You bring cash for a shortfall up to the amount below. Beyond that, you can renegotiate or walk.</em></span><span class="tag mid">Balanced</span></label>
+      <label class="opt"><input type="radio" name="app" value="2"><span><b>Waive appraisal</b><em>You cover any gap in cash at closing, no matter the size.</em></span><span class="tag seller">Strongest</span></label>
+    </div>
+    <div class="field" id="gapWrap" style="margin-top:12px;display:none"><label for="gap">Maximum gap you will cover</label><div class="money"><span>$</span><input id="gap" type="number" step="1000" value="15000"></div></div>
+  </section>
+</div>
+
+<aside>
+  <div class="summary">
+    <h2>How the seller reads it</h2>
+    <div class="meter">
+      <div class="meter-bar"><div class="meter-fill" id="fill"></div></div>
+      <div class="meter-lab"><span>Cautious</span><span>Competitive</span><span>Aggressive</span></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <p class="verdict-sub" id="verdictSub"></p>
+
+    <div class="stat"><span>Seller's gross proceeds</span><b id="sNet"></b></div>
+    <div class="stat"><span>Offer vs. list</span><b id="vsList"></b></div>
+    <div class="stat"><span>Offer vs. supportable appraisal</span><b id="vsAppr"></b></div>
+    <div class="stat"><span>Down payment</span><b id="downAmt"></b></div>
+    <div class="stat"><span>Loan amount</span><b id="loanAmt"></b></div>
+    <div class="stat"><span>Appraisal gap exposure</span><b id="gapExp"></b></div>
+    <div class="stat total"><span>Cash needed at closing (before fees)</span><b id="cash"></b></div>
+    <div class="stat"><span>Earnest money at risk if you walk</span><b id="risk"></b></div>
+
+    <ul class="flags" id="flags"></ul>
+  </div>
+
+  <div class="terms">
+    <h3>Your offer in plain English</h3>
+    <p id="terms"></p>
+    <button class="btn" id="copyBtn" type="button">Copy terms</button>
+    <button class="btn ghost" type="button" onclick="window.print()">Print</button>
+  </div>
+</aside>
+</main>
+
+<footer>This tool is for planning and discussion only. Every term is subject to the written contract, lender approval, and municipal requirements. Contingencies protect your deposit only while their deadlines are open. Scoring reflects a general seller's perspective and is not a prediction of acceptance. Questions: call or text (314) 560-0246.</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const n=v=>{const x=parseFloat(v);return isNaN(x)?0:x;};
+const fmt=v=>'$'+Math.round(n(v)).toLocaleString();
+const pct=v=>(v>=0?'+':'')+n(v).toFixed(1)+'%';
+const radio=name=>{const el=document.querySelector('input[name="'+name+'"]:checked');return el?+el.value:0;};
+
+// ── prefill from the query string, so the agent can send a starting scenario ──
+(function prefill(){
+  const q=new URLSearchParams(location.search);
+  ["list","appr","muni","offer","em","down","close","concess","thresh","gap"].forEach(k=>{
+    if(q.has(k)&&$(k)) $(k).value=q.get(k);
+  });
+  if(q.has("comp")&&$("comp")) $("comp").value=q.get("comp");
+  ["insp","occ","fin","app"].forEach(name=>{
+    if(!q.has(name)) return;
+    const el=document.querySelector('input[name="'+name+'"][value="'+q.get(name)+'"]');
+    if(el) el.checked=true;
+  });
+  const addr=q.get("address"), who=q.get("client");
+  if(addr||who){
+    $("ctx").textContent=[addr,who?"prepared for "+who:""].filter(Boolean).join("  ·  ");
+    $("ctx").hidden=false;
+  }
+})();
+
+function calc(){
+  const list=n($('list').value), appr=n($('appr').value), offer=n($('offer').value);
+  const em=n($('em').value), down=n($('down').value), days=n($('close').value)||30;
+  const concess=n($('concess').value), comp=n($('comp').value);
+  const insp=radio('insp'), occ=radio('occ'), fin=radio('fin'), app=radio('app');
+  const gap=n($('gap').value), thresh=n($('thresh').value);
+  const muni=$('muni').value||'Municipal';
+
+  $('muniLabel').textContent=muni;
+  $('threshWrap').style.display=insp===1?'block':'none';
+  $('gapWrap').style.display=app===1?'block':'none';
+
+  const vsL=list?(offer-list)/list*100:0, vsA=appr?(offer-appr)/appr*100:0;
+  const emP=offer?em/offer*100:0;
+  $('offerPct').textContent=list?pct(vsL)+' vs. list price':'';
+  $('emPct').textContent=offer?emP.toFixed(1)+'% of offer price':'';
+
+  // ── Scoring, 0-100 from a seller's perspective. Weightings are the agent's
+  //    professional judgement, deliberately left as authored. Every term is
+  //    guarded so a cleared field cannot poison the score: dividing the
+  //    concession by an empty offer price previously produced NaN, which made
+  //    every comparison below fail and reported an empty offer as "Aggressive".
+  let s=0;
+  s+=Math.max(0,Math.min(35,20+vsL*3));           // price: at list = 20, +5% = 35
+  s+=Math.min(10,emP*4);                          // earnest money: 2.5% = 10
+  s+=[0,5,9,12][insp]||0;
+  s+=[0,6][occ]||0;
+  s+=[0,6,12][fin]||0;
+  if(app===1) s+=Math.min(10,gap/5000*2.5); else if(app===2) s+=13;
+  s+=days<=21?6:days<=30?4:days<=45?2:0;
+  s-=offer>0?Math.min(10,concess/offer*100*4):0;
+  if(!isFinite(s)) s=0;
+  s=Math.max(0,Math.min(100,s));
+  $('fill').style.width=s+'%';
+
+  let v,sub;
+  if(offer<=0){ v='Incomplete'; sub='Enter an offer price to see how this reads.'; }
+  else if(s<30){v='Cautious';sub='Heavy on protection, light on commitment. Fine when you are the only offer with no urgency.'}
+  else if(s<55){v='Competitive';sub='A clean, defensible offer. Holds up well one-on-one; may lose to a stronger bidder.'}
+  else if(s<75){v='Strong';sub='You have given up meaningful protection to stand out. Make sure you are comfortable with the exposure below.'}
+  else{v='Aggressive';sub='About as strong as an offer gets. Your protections are thin, so the numbers below matter.'}
+  if(offer>0&&comp>=1&&s<45)sub+=' With another offer in play, expect this to be tested.';
+  $('verdict').textContent=v; $('verdictSub').textContent=sub;
+
+  // ── Money ──
+  const downAmt=offer*down/100, loan=Math.max(0,offer-downAmt);
+  let gapExp=0, gapLabel='None';
+  if(app===2){ gapExp=Math.max(0,offer-appr); gapLabel=gapExp?fmt(gapExp)+' (unlimited)':'None expected (unlimited)'; }
+  else if(app===1){ gapExp=Math.min(gap,Math.max(0,offer-appr)); gapLabel=fmt(gapExp)+' (capped at '+fmt(gap)+')'; }
+  const cash=downAmt+gapExp;
+  $('sNet').textContent=fmt(offer-concess);
+  $('vsList').textContent=fmt(offer-list)+' ('+pct(vsL)+')';
+  $('vsAppr').textContent=fmt(offer-appr)+' ('+pct(vsA)+')';
+  $('downAmt').textContent=fmt(downAmt)+' ('+down+'%)';
+  $('loanAmt').textContent=(down>=100||fin===2&&down>=100)?'None':fmt(loan);
+  $('gapExp').textContent=gapLabel;
+  $('cash').textContent=fmt(cash);
+
+  // Earnest money exposure. Any live contingency can return the deposit, so
+  // list the ones still standing rather than treating a single waiver as
+  // forfeiting everything. A non-refundable deposit is its own case.
+  const keeps=[];
+  if(fin===0) keeps.push('financing');
+  if(app===0||app===1) keeps.push('appraisal');
+  if(insp<3) keeps.push('inspection');
+  if(fin===1) $('risk').textContent=fmt(em)+' (non-refundable by agreement)';
+  else if(keeps.length) $('risk').textContent=fmt(0)+' while '+keeps.join(' / ')+' deadlines are open';
+  else $('risk').textContent=fmt(em)+' (no contingencies left)';
+
+  // ── Flags ──
+  const f=[];
+  if(offer>appr&&appr>0)f.push('Offer is '+fmt(offer-appr)+' above what an appraiser can likely support. Plan for a gap.');
+  if(app===0&&offer>appr&&appr>0)f.push('Appraisal contingency protects you, but sellers know a high offer with this contingency may not hold.');
+  if(fin===2&&down<100)f.push('No financing contingency with a loan in place: if the lender fails to fund, you are in breach.');
+  if(insp===3)f.push('No inspection means no discovery of defects and no exit if something is wrong.');
+  if(occ===1)f.push('You cannot move in until '+muni+' passes the occupancy inspection. Budget time and repair money.');
+  if(offer>0&&emP<1)f.push('Earnest money under 1% reads as low commitment on a home at this price.');
+  if(concess>0&&offer>0)f.push('Requesting '+fmt(concess)+" in closing costs lowers the seller's net the same as a lower price.");
+  if(list>0&&vsL<-5)f.push('More than 5% below list on a recently reduced home may not get a response.');
+  if(keeps.length===0&&fin!==1)f.push('With no contingencies left, walking away costs you the full deposit and possibly more.');
+  $('flags').innerHTML=f.map(x=>'<li></li>').join('');
+  document.querySelectorAll('#flags li').forEach((li,i)=>{ li.textContent=f[i]; });
+
+  // ── Plain English terms ──
+  const inspTxt=['full inspections with the right to negotiate repairs or back out',
+    'full inspections, negotiating only items over '+fmt(thresh)+', with the right to back out',
+    'full inspections for information only, no repair requests, with the right to back out',
+    'no inspections'][insp];
+  const occTxt=occ===0?'Seller to complete and pass the '+muni+' occupancy inspection before closing'
+                      :'Buyer to complete the '+muni+' occupancy inspection after closing';
+  const finTxt=['contingent on financing','contingent on financing with earnest money non-refundable','not contingent on financing'][fin];
+  const appTxt=app===0?'contingent on appraisal'
+              :app===1?'contingent on appraisal, with buyer covering any shortfall up to '+fmt(gap)
+                      :'appraisal waived, buyer covers any shortfall in cash';
+  $('terms').textContent=
+'Offer price of '+fmt(offer)+' with '+fmt(em)+' earnest money and '+down+'% down, closing in '+days+' days'+(concess?', seller to pay '+fmt(concess)+' toward buyer closing costs':'')+'.\n'+
+'Inspections: '+inspTxt+'.\n'+
+'Occupancy: '+occTxt+'.\n'+
+'Financing: '+finTxt+'.\n'+
+'Appraisal: '+appTxt+'.';
+}
+
+$('copyBtn').addEventListener('click',()=>{
+  const btn=$('copyBtn');
+  const done=()=>{ btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy terms',1500); };
+  const text=$('terms').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done,()=>{ btn.textContent='Press Ctrl+C'; });
+  } else {
+    // clipboard API needs a secure context; fall back so the button is never dead
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ btn.textContent='Press Ctrl+C'; }
+    ta.remove();
+  }
+});
+document.querySelectorAll('input,select').forEach(el=>{
+  el.addEventListener('input',calc);
+  el.addEventListener('change',calc);
+});
+calc();
+</script>
+</body>
+</html>

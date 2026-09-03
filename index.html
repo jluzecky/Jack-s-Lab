@@ -989,7 +989,7 @@ function Homebase() {
 
       {parent==="home" && <Dashboard hist={hist} escrow={escrow} cmas={cmas} contacts={contacts} go={setParent} profile={profile} adjLib={adjLib}/>}
       {parent==="sales" && <MySales hist={hist} saveHist={saveHist} escrow={escrow} saveEscrow={saveEscrow} profile={profile} saveProfile={saveProfile} contacts={contacts}/>}
-      {parent==="offers" && <MyOffers comparisons={offers} saveComparisons={saveOffers} escrow={escrow} cmas={cmas} contacts={contacts} profile={profile} saveProfile={saveProfile} onPromote={promoteOfferToPipeline}/>}
+      {parent==="offers" && <MyOffers comparisons={offers} saveComparisons={saveOffers} escrow={escrow} cmas={cmas} adjLib={adjLib} contacts={contacts} profile={profile} saveProfile={saveProfile} onPromote={promoteOfferToPipeline}/>}
       {parent==="cmas" && <MyCMAs cmas={cmas} saveCmas={saveCmas} adjLib={adjLib} saveAdjLib={saveAdjLib} adjCats={adjCats} saveAdjCats={saveAdjCats} profile={profile} saveProfile={saveProfile} addrOptions={addrOptions} onPromote={promoteCmaToPipeline}/>}
       {parent==="crm" && <MyCRM contacts={contacts} saveContacts={saveContacts} addrOptions={addrOptions}/>}
       {parent==="settings" && <Settings settings={settings} saveSettings={saveSettings} profile={profile} saveProfile={saveProfile} stores={{hist,saveHist,escrow,saveEscrow,cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,saveProfile,contacts,saveContacts,settings,saveSettings}}/>}
@@ -3174,8 +3174,116 @@ function OfferReport({cmp,profile,saveProfile,onClose}){
   </ReportFrame>;
 }
 
+
+// ──────────── Buyer offer builder — link composer ────────────
+// The builder itself is offer-builder.html, a separate client-facing file that
+// carries no database credentials and none of this app's code, so a link handed
+// to a buyer cannot reach anything private. This panel only composes a
+// prefilled URL for it and previews the result.
+function OfferBuilderLaunch({cmas,escrow,contacts,adjLib}){
+  const [f,setF]=useState({address:"",client:"",list:"",appr:"",muni:"",comp:"1"});
+  const [copied,setCopied]=useState(false);
+  const [preview,setPreview]=useState(false);
+  const [missing,setMissing]=useState(false);
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+
+  const base=useMemo(()=>{ try{ return new URL("offer-builder.html",window.location.href).href; }catch(e){ return "offer-builder.html"; } },[]);
+  const link=useMemo(()=>{
+    const q=new URLSearchParams();
+    [["address",f.address],["client",f.client],["list",f.list],["appr",f.appr],["muni",f.muni],["comp",f.comp]]
+      .forEach(([k,v])=>{ if(v!==""&&v!=null) q.set(k,v); });
+    const s=q.toString();
+    return s?`${base}?${s}`:base;
+  },[base,f]);
+
+  // Warn only on a definite 404: the file has to be deployed next to index.html.
+  // A network error (opened from disk, offline) is inconclusive, so stay quiet.
+  useEffect(()=>{ let alive=true;
+    fetch(base,{method:"HEAD"}).then(r=>{ if(alive&&r.status===404) setMissing(true); }).catch(()=>{});
+    return ()=>{ alive=false; };
+  },[base]);
+
+  const copy=()=>{
+    const done=()=>{ setCopied(true); setTimeout(()=>setCopied(false),1600); };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done,done);
+    else { const ta=document.createElement("textarea"); ta.value=link; document.body.appendChild(ta); ta.select();
+           try{ document.execCommand("copy"); }catch(e){} ta.remove(); done(); }
+  };
+
+  const fromCma=(c)=>{
+    const med=cmaSuggested(c,adjLib);
+    setF(p=>({...p, address:c.subject||p.address, client:c.client||p.client,
+      list:String(+c.listPrice||med||""), appr:String(med||"")}));
+  };
+  const fromDeal=(r)=>setF(p=>({...p, address:r.address||p.address, client:r.buyerName||p.client, list:String(+r.price||"")}));
+
+  return <div>
+    {missing&&<div style={{border:"1px solid var(--bad)",background:"#fdf3f1",borderRadius:"var(--r)",padding:"11px 13px",marginBottom:14,fontFamily:SANS,fontSize:12.5,color:"var(--bad)"}}>
+      <strong>offer-builder.html is not deployed.</strong> The link below will not open until that file sits alongside index.html on the site.
+      Deploy the folder rather than the single file.
+    </div>}
+
+    <Section title="What the buyer sees">
+      <div style={{fontFamily:SANS,fontSize:12.5,color:"var(--ink-2)",lineHeight:1.6,marginBottom:12}}>
+        The builder is a separate page with no access to Homebase — no contacts, no commissions, no closings. Fill in what you know about
+        the listing, then send the link. Everything below is optional; anything you leave blank the buyer can set themselves.
+      </div>
+      <div className="hb-grid-3">
+        <Field label="Property address">{inp(f.address,v=>set("address",v),"3851 Neosho St")}</Field>
+        <Field label="Prepared for (buyer)">{inp(f.client,v=>set("client",v),"Buyer name")}</Field>
+        <Field label="Municipality">{inp(f.muni,v=>set("muni",v),"Kirkwood")}</Field>
+        <Field label="List price">{inp(f.list,v=>set("list",v),"289000","text",{textAlign:"right"})}</Field>
+        <Field label="Supportable appraisal">{inp(f.appr,v=>set("appr",v),"295000","text",{textAlign:"right"})}</Field>
+        <Field label="Competing offers">{sel(f.comp,v=>set("comp",v),[{v:"0",l:"None known"},{v:"1",l:"One other offer"},{v:"2",l:"Multiple offers"}])}</Field>
+      </div>
+    </Section>
+
+    {(cmas.length>0||escrow.length>0)&&<Section title="Fill from existing work">
+      <div className="hb-grid-2">
+        <div>
+          <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>From a CMA</div>
+          {cmas.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS}}>No CMAs yet.</div>:
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {cmas.slice(0,6).map(c=><button key={c.id} onClick={()=>fromCma(c)} style={{textAlign:"left",border:"1px solid var(--line)",borderRadius:"var(--r-sm)",padding:"7px 10px",background:"var(--surface)",cursor:"pointer",fontFamily:SANS,fontSize:12.5}}>
+                <span style={{fontWeight:600}}>{c.subject||"(no address)"}</span>
+                <span style={{color:"var(--ink-2)",marginLeft:7}}>{(()=>{const m=cmaSuggested(c,adjLib);return m?`median ${fmt(m)}`:"no comps";})()}</span>
+              </button>)}
+            </div>}
+        </div>
+        <div>
+          <div style={{fontSize:10,color:"var(--ink-2)",fontFamily:SANS,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:700,marginBottom:6}}>From a pipeline deal</div>
+          {escrow.length===0?<div style={{fontSize:12,color:"var(--ink-3)",fontFamily:SANS}}>No active deals.</div>:
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {escrow.slice(0,6).map(r=><button key={r.id} onClick={()=>fromDeal(r)} style={{textAlign:"left",border:"1px solid var(--line)",borderRadius:"var(--r-sm)",padding:"7px 10px",background:"var(--surface)",cursor:"pointer",fontFamily:SANS,fontSize:12.5}}>
+                <span style={{fontWeight:600}}>{r.address||"(no address)"}</span>
+                <span style={{color:"var(--ink-2)",marginLeft:7}}>{r.status}{r.price?` · ${fmt(r.price)}`:""}</span>
+              </button>)}
+            </div>}
+        </div>
+      </div>
+    </Section>}
+
+    <Section title="Send it">
+      <div style={{fontFamily:SANS,fontSize:11.5,color:"var(--ink-2)",wordBreak:"break-all",background:"var(--surface-3)",border:"1px solid var(--line)",borderRadius:"var(--r-sm)",padding:"9px 11px",marginBottom:10}}>{link}</div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+        <button onClick={copy} style={btnPrimary}>{copied?"Copied":"Copy link"}</button>
+        <a href={link} target="_blank" rel="noopener noreferrer" style={{...btnGhost,textDecoration:"none",display:"inline-block"}}>Open in a new tab</a>
+        <button onClick={()=>setPreview(!preview)} style={btnGhost}>{preview?"Hide preview":"Preview here"}</button>
+      </div>
+      <div style={{fontFamily:SANS,fontSize:11.5,color:"var(--ink-2)",marginTop:10,lineHeight:1.55}}>
+        Text or email this link. It is a public page — treat it as shareable, not private.
+      </div>
+    </Section>
+
+    {preview&&<div style={{border:"1px solid var(--line)",borderRadius:"var(--r)",overflow:"hidden",boxShadow:"var(--sh-1)"}}>
+      <iframe src={link} title="Offer Builder preview" style={{width:"100%",height:"72vh",border:"none",display:"block"}}/>
+    </div>}
+  </div>;
+}
+
 // ──────────── My Offers tab ────────────
-function MyOffers({comparisons,saveComparisons,escrow,cmas,contacts,profile,saveProfile,onPromote}){
+function MyOffers({comparisons,saveComparisons,escrow,cmas,adjLib,contacts,profile,saveProfile,onPromote}){
+  const [tab,setTab]=useState("compare");
   const [openId,setOpenId]=useState(null);
   const [reportId,setReportId]=useState(null);
   const [search,setSearch]=useState("");
@@ -3227,6 +3335,14 @@ function MyOffers({comparisons,saveComparisons,escrow,cmas,contacts,profile,save
 
   const cmp=draft;
   if(reportId){ const rc=comparisons.find(c=>c.id===reportId); if(rc) return <OfferReport cmp={rc} profile={profile} saveProfile={saveProfile} onClose={()=>setReportId(null)}/>; }
+
+  // "My Offers" covers both sides of the same job, so the labels have to say
+  // which: offers received on a listing, versus an offer a buyer is building.
+  const subBar=<div className="hb-tabs" style={{marginBottom:18,borderBottom:"1px solid var(--line)"}}>
+    {[["compare","Seller · Compare offers"],["builder","Buyer · Offer builder"]].map(([k,l])=>
+      <button key={k} onClick={()=>{ if(k!=="compare") flush(); setTab(k); }} style={subTab(tab===k)}>{l}</button>)}
+  </div>;
+  if(tab==="builder") return <div>{subBar}<OfferBuilderLaunch cmas={cmas} escrow={escrow} contacts={contacts} adjLib={adjLib}/></div>;
 
   if(cmp){
     const costs=cmp.costs||{};
@@ -3297,6 +3413,7 @@ function MyOffers({comparisons,saveComparisons,escrow,cmas,contacts,profile,save
   }
 
   return <div>
+    {subBar}
     <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
       <div style={{flex:1,minWidth:200}}>{inp(search,setSearch,"Search property, seller, zip…")}</div>
       <button onClick={()=>addCmp()} style={btnPrimary}>+ New comparison</button>
