@@ -10,14 +10,18 @@
      phone with no network round-trips. -->
 <style>
   :root{
-    --ink:#1c1f26;      --ink-2:#5c626e;    --ink-3:#8b909b;
-    --paper:#faf9f4;    --surface:#ffffff;  --surface-2:#fdfcf9; --surface-3:#f2f0e9;
-    --line:#e6e2d8;     --line-2:#d3cec1;   --line-3:#b8b3a5;
-    --accent:#2f4034;   --accent-2:#b5a36f;
-    --ok:#0f7a52;       --warn:#8a6d1f;     --bad:#b3392c;
+    /* Same navy/teal identity as Homebase. Kept as literal values rather than a
+       shared stylesheet so this page still makes zero external requests. */
+    --ink:#16263F;      --ink-2:#45556B;    --ink-3:#6B788C;
+    --paper:#F5F8FA;    --surface:#FFFFFF;  --surface-2:#F8FAFC; --surface-3:#EEF3F7;
+    --line:rgba(22,38,63,0.10); --line-2:rgba(22,38,63,0.20); --line-3:rgba(22,38,63,0.32);
+    --accent:#16263F;   --accent-2:#2FB6AD;
+    --ok:#2E7D64;       --warn:#9A7322;     --bad:#B23A2E;
+    --ok-tint:#DCEFE8;  --warn-tint:#F5EBD3; --bad-tint:#F6E2DF;
+    --navy-tint:#E5E9F0;
     --r-sm:7px;         --r:10px;
-    --sh-1:0 1px 2px rgba(28,31,38,0.05);
-    --sh-2:0 2px 8px rgba(28,31,38,0.07), 0 1px 2px rgba(28,31,38,0.04);
+    --sh-1:0 1px 2px rgba(15,27,45,0.06);
+    --sh-2:0 2px 8px rgba(15,27,45,0.08), 0 1px 2px rgba(15,27,45,0.05);
     --serif:Georgia,'Times New Roman',serif;
     --sans:'Helvetica Neue',Helvetica,Arial,sans-serif;
   }
@@ -29,7 +33,7 @@
   :focus-visible{outline:2px solid rgba(181,163,111,0.55);outline-offset:1px}
   .num{font-variant-numeric:tabular-nums}
 
-  header{background:var(--accent);color:#f2f0e9;padding:26px 24px 22px}
+  header{background:var(--accent);color:var(--surface-3);padding:26px 24px 22px}
   .brand{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:-0.2px}
   .brand small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;margin-top:5px;font-weight:400}
   h1{font-family:var(--serif);font-weight:700;font-size:31px;margin:20px 0 5px;letter-spacing:-0.5px}
@@ -63,19 +67,19 @@
   .opt{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);cursor:pointer;background:var(--surface);transition:border-color .12s ease,background .12s ease;
        text-transform:none;letter-spacing:normal;font-size:14px;font-weight:400;color:var(--ink);margin-bottom:0}
   .opt:hover{border-color:var(--line-3)}
-  .opt:has(input:checked){border-color:var(--accent);background:#f4f6f3}
+  .opt:has(input:checked){border-color:var(--accent);background:var(--surface-2)}
   .opt input{margin-top:3px;width:auto}
   .opt b{display:block;font-weight:600;font-size:14px}
   .opt em{font-style:normal;font-size:12.5px;color:var(--ink-2)}
   .tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap;align-self:start}
-  .tag.buyer{background:#e0e7ff;color:#3730a3}
-  .tag.seller{background:#dcfce7;color:#166534}
-  .tag.mid{background:#f3f4f6;color:#374151}
+  .tag.buyer{background:var(--navy-tint);color:var(--accent)}
+  .tag.seller{background:var(--ok-tint);color:var(--ok)}
+  .tag.mid{background:var(--surface-3);color:var(--ink-2)}
 
   aside{position:sticky;top:16px}
   @media(max-width:980px){aside{position:static}}
-  .summary{background:var(--accent);color:#f2f0e9;border-radius:var(--r);padding:20px;box-shadow:var(--sh-2)}
-  .summary h2{color:#f2f0e9;font-size:16px}
+  .summary{background:var(--accent);color:var(--surface-3);border-radius:var(--r);padding:20px;box-shadow:var(--sh-2)}
+  .summary h2{color:var(--surface-3);font-size:16px}
   .meter{margin:14px 0 4px}
   .meter-bar{height:9px;background:rgba(255,255,255,.16);border-radius:5px;overflow:hidden}
   .meter-fill{height:100%;background:var(--accent-2);width:0;transition:width .3s ease}
