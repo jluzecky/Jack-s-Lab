@@ -30,7 +30,7 @@
     --sh-1:0 1px 2px rgba(15,27,45,0.06), 0 2px 6px rgba(15,27,45,0.06);
     --sh-2:0 4px 8px rgba(15,27,45,0.07), 0 8px 24px rgba(15,27,45,0.10);
     --sh-3:0 8px 16px rgba(15,27,45,0.10), 0 24px 48px rgba(15,27,45,0.16);
-    --shell-pad-x:28px; --shell-pad-y:26px;
+    --shell-pad-x:40px; --shell-pad-y:26px;
     --row-even:#F8FAFC; --row-hover:rgba(47,182,173,0.10);
     /* Semantic tints, paired with --ok / --warn / --bad above. Added so the
        status backgrounds scattered through the app resolve through tokens
@@ -61,13 +61,13 @@
   .hb-sechead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
 
   @media (max-width:900px){
-    :root{--shell-pad-x:18px;--shell-pad-y:20px;}
+    :root{--shell-pad-x:22px;--shell-pad-y:20px;}
     .hb-grid-4{grid-template-columns:repeat(2,1fr);}
     .hb-grid-3{grid-template-columns:repeat(2,1fr);}
     .hb-grid-2{grid-template-columns:1fr;}
   }
   @media (max-width:560px){
-    :root{--shell-pad-x:13px;--shell-pad-y:16px;}
+    :root{--shell-pad-x:14px;--shell-pad-y:16px;}
     /* Two up rather than one: the tiles are short, and stacking all four
        costs a lot of vertical scroll on a phone. */
     .hb-grid-4,.hb-grid-3{grid-template-columns:repeat(2,1fr);}
@@ -75,6 +75,34 @@
   @media (max-width:380px){
     .hb-grid-4,.hb-grid-3{grid-template-columns:1fr;}
   }
+  /* ── App shell ─────────────────────────────────────────────────
+     The header and the sub-nav are full-bleed bands; the content column
+     inside each is the same .hb-wrap, so the logo, the sub-tabs and the
+     first card all line up on one left edge at any width. */
+  .hb-wrap{box-sizing:border-box;max-width:1360px;margin:0 auto;padding-left:var(--shell-pad-x);padding-right:var(--shell-pad-x);}
+  .hb-topbar{background:var(--navy);}
+  .hb-topbar-inner{display:flex;align-items:center;gap:16px;padding-top:16px;padding-bottom:16px;}
+  .hb-nav{display:flex;gap:28px;margin-left:44px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .hb-nav::-webkit-scrollbar{display:none;}
+  .hb-subnav{background:var(--surface);border-bottom:1px solid var(--line);}
+  .hb-subnav-row{display:flex;gap:30px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .hb-subnav-row::-webkit-scrollbar{display:none;}
+  .hb-main{padding-top:28px;padding-bottom:56px;}
+  .hb-wordmark{font-size:25px;}
+  /* Below ~880px the nav no longer fits beside the wordmark, so it drops to
+     its own row and scrolls sideways rather than squeezing the brand out. */
+  @media (max-width:880px){
+    .hb-topbar-inner{flex-wrap:wrap;gap:12px;padding-bottom:0;}
+    .hb-nav{order:3;width:100%;margin-left:0;gap:22px;}
+  }
+  /* On a phone the header is competing with the content for the fold, so the
+     wordmark comes down and the brand name — already on the logo — drops out. */
+  @media (max-width:560px){
+    .hb-topbar-inner{gap:10px;padding-top:12px;}
+    .hb-wordmark{font-size:20px;}
+    .hb-brandname{display:none;}
+  }
+
   /* ── Data tables ───────────────────────────────────────────────
      A sticky header only works inside an element that actually scrolls
      vertically. overflow-x:auto alone computes overflow-y to auto, which
@@ -977,7 +1005,14 @@ function Homebase() {
     return ()=>{};
   },[settings&&settings.accent,settings&&settings.accent2]);
 
-  const parentS=(k)=>({padding:"9px 16px 11px",fontSize:13.5,fontWeight:parent===k?700:500,letterSpacing:"0.02em",color:parent===k?"var(--ink)":"var(--ink-3)",background:"none",border:"none",borderBottom:parent===k?"2.5px solid var(--accent-2)":"2.5px solid transparent",marginBottom:-1,cursor:"pointer",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",whiteSpace:"nowrap",transition:"color .12s ease"});
+  const brand = brandList(profile)[0] || { name:"", logo:"" };
+  // Initials for the header avatar: first letter of the first two words of the
+  // agent's name, so "Jack Luzecky" reads JL and a single name still shows one.
+  const initials = String((profile&&profile.agentName)||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("") || "\u2014";
+
+  // Primary nav now sits in the navy band, so it is styled for a dark ground:
+  // the active item is white with a teal rule, the rest are muted paper.
+  const parentS=(k)=>({padding:"9px 0",fontSize:14,fontWeight:parent===k?700:600,color:parent===k?"#fff":"rgba(245,248,250,0.65)",background:"none",border:"none",boxShadow:parent===k?"inset 0 -2px 0 var(--teal)":"none",cursor:"pointer",fontFamily:SANS,whiteSpace:"nowrap",transition:"color .12s ease"});
 
   return (
     <SettingsCtx.Provider value={settings}>
@@ -992,44 +1027,61 @@ function Homebase() {
         fontFamily:SERIF,
         color:"var(--ink)",
         background:"var(--paper)",
-        border:"1px solid var(--line)",
-        borderRadius:8,
-        maxWidth:1080, margin:"0 auto", padding:"var(--shell-pad-y) var(--shell-pad-x) 48px"
+        minHeight:"100vh"
       }}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18,paddingBottom:16,borderBottom:"1.5px solid var(--line-3)"}}>
-        {brandList(profile)[0]&&brandList(profile)[0].logo
-          ? <img src={brandList(profile)[0].logo} alt="" style={{height:34,maxWidth:150,objectFit:"contain",flexShrink:0}}/>
-          : <div style={{width:34,height:34,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-        </div>}
-        <div style={{flex:1,minWidth:0}}>
-          <h2 style={{fontSize:24,fontWeight:700,color:"var(--ink)",margin:0,letterSpacing:"-0.4px"}}>Homebase</h2>
-          <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",marginTop:1,textTransform:"uppercase",letterSpacing:"0.12em"}}>Every transaction, one place · Luzecky Real Estate</div>
+      <header className="hb-topbar">
+        <div className="hb-wrap hb-topbar-inner">
+          {brand.logo
+            ? <img src={brand.logo} alt="" style={{height:38,maxWidth:150,objectFit:"contain",flexShrink:0}}/>
+            : <div style={{width:38,height:38,borderRadius:9,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(111,208,200,0.45)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+          </div>}
+          <div style={{minWidth:0}}>
+            <h2 className="hb-wordmark" style={{fontWeight:700,color:"#fff",margin:0,letterSpacing:"-0.01em",lineHeight:1.05}}>Homebase</h2>
+            <div style={{fontSize:10.5,fontWeight:600,color:"var(--teal-soft)",fontFamily:SANS,marginTop:3,textTransform:"uppercase",letterSpacing:"0.18em"}}>Every transaction, one place</div>
+          </div>
+          <nav className="hb-nav">
+            {[["home","Home"],["sales","My Sales"],["offers","My Offers"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
+          </nav>
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
+            <span className="hb-brandname" style={{fontSize:11.5,color:"rgba(245,248,250,0.55)",fontFamily:SANS,letterSpacing:"0.06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{brand.name}</span>
+            <div title={profile&&profile.agentName} style={{width:34,height:34,borderRadius:999,background:"var(--teal)",color:"var(--navy-deep)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:SANS,fontWeight:800,fontSize:12.5,flexShrink:0}}>{initials}</div>
+            <button onClick={()=>{ if(confirm("Sign out of Homebase?")) supa.auth.signOut(); }}
+              title="Sign out"
+              style={{fontSize:11.5,padding:"6px 12px",borderRadius:"var(--r-sm)",border:"1px solid rgba(245,248,250,0.28)",background:"none",color:"rgba(245,248,250,0.8)",cursor:"pointer",fontFamily:SANS,fontWeight:600,whiteSpace:"nowrap"}}>Sign out</button>
+          </div>
         </div>
-        <button onClick={()=>{ if(confirm("Sign out of Homebase?")) supa.auth.signOut(); }}
-          style={{...btnGhost,flexShrink:0}}>Sign out</button>
-      </div>
+      </header>
 
-      <div className="hb-tabs" style={{marginBottom:24,borderBottom:"1px solid var(--line)"}}>
-        {[["home","Home"],["sales","My Sales"],["offers","My Offers"],["cmas","My CMAs"],["crm","My CRM"],["settings","Settings"]].map(([k,l])=><button key={k} onClick={()=>setParent(k)} style={parentS(k)}>{l}</button>)}
-      </div>
+      {HAS_SUBNAV[parent] && <div className="hb-subnav" ref={el=>{ if(el && SUBNAV_HOST.parentNode!==el) el.appendChild(SUBNAV_HOST); }}/>}
 
+      <main className="hb-wrap hb-main">
       {parent==="home" && <Dashboard hist={hist} escrow={escrow} cmas={cmas} contacts={contacts} go={setParent} profile={profile} adjLib={adjLib}/>}
       {parent==="sales" && <MySales hist={hist} saveHist={saveHist} escrow={escrow} saveEscrow={saveEscrow} profile={profile} saveProfile={saveProfile} contacts={contacts}/>}
       {parent==="offers" && <MyOffers comparisons={offers} saveComparisons={saveOffers} escrow={escrow} cmas={cmas} adjLib={adjLib} contacts={contacts} profile={profile} saveProfile={saveProfile} onPromote={promoteOfferToPipeline}/>}
       {parent==="cmas" && <MyCMAs cmas={cmas} saveCmas={saveCmas} adjLib={adjLib} saveAdjLib={saveAdjLib} adjCats={adjCats} saveAdjCats={saveAdjCats} profile={profile} saveProfile={saveProfile} addrOptions={addrOptions} onPromote={promoteCmaToPipeline}/>}
       {parent==="crm" && <MyCRM contacts={contacts} saveContacts={saveContacts} addrOptions={addrOptions}/>}
       {parent==="settings" && <Settings settings={settings} saveSettings={saveSettings} profile={profile} saveProfile={saveProfile} stores={{hist,saveHist,escrow,saveEscrow,cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,saveProfile,contacts,saveContacts,settings,saveSettings}}/>}
+      </main>
     </div>
     </SettingsCtx.Provider>
   );
 }
 
+// The sub-tab row belongs to the band under the header, but each tab component
+// owns its own tab state and renders its own row. A module-level host node lets
+// a child portal into the band on its first render; a node looked up by id
+// would not be in the document yet at that point.
+const SUBNAV_HOST = typeof document!=="undefined" ? document.createElement("div") : null;
+if (SUBNAV_HOST) SUBNAV_HOST.className = "hb-wrap hb-subnav-row";
+const SubNav = ({children}) => SUBNAV_HOST ? ReactDOM.createPortal(children, SUBNAV_HOST) : null;
+const HAS_SUBNAV = { sales:1, offers:1, cmas:1, settings:1 };
+
 // shared sub-tab styling
 const SANS="'Manrope',ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif";
-const SERIF="'Playfair Display','Iowan Old Style','Playfair Display','Iowan Old Style',Georgia,'Times New Roman',serif";
+const SERIF="'Playfair Display','Iowan Old Style',Georgia,'Times New Roman',serif";
 const MONO="'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace";
-const subTab=(active)=>({padding:"8px 16px",fontSize:13,fontWeight:active?700:500,fontFamily:SERIF,color:active?"var(--ink)":"var(--ink-2)",background:"none",border:"none",borderBottom:active?"2.5px solid var(--accent)":"2.5px solid transparent",cursor:"pointer",whiteSpace:"nowrap",letterSpacing:"0.01em"});
+const subTab=(active)=>({padding:"15px 2px",fontSize:14,fontWeight:active?700:500,fontFamily:SANS,color:active?"var(--ink)":"var(--ink-3)",background:"none",border:"none",borderBottom:active?"2px solid var(--teal)":"2px solid transparent",marginBottom:-1,cursor:"pointer",whiteSpace:"nowrap"});
 const chip=(active)=>({fontSize:12,padding:"5px 13px",borderRadius:999,border:"1px solid",fontFamily:SANS,fontWeight:active?600:400,cursor:"pointer",background:active?"var(--accent)":"var(--surface)",color:active?"#fff":"var(--ink-2)",borderColor:active?"var(--accent)":"var(--line-2)"});
 const thS={textAlign:"left",padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontSize:10,color:"var(--ink-2)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em",whiteSpace:"nowrap",fontFamily:SANS,borderBottom:"1px solid var(--line-2)",background:"var(--surface-3)",position:"sticky",top:0,zIndex:1};
 const tdS=(e={})=>({padding:"var(--rowpad-y,7px) var(--rowpad-x,9px)",fontFamily:SANS,fontSize:12.5,borderBottom:"1px solid var(--line)",fontVariantNumeric:"tabular-nums",...e});
@@ -1327,9 +1379,9 @@ function MySales({hist,saveHist,escrow,saveEscrow,profile,saveProfile,contacts=[
   const SI=({col})=>hSort.col===col?<span style={{color:"var(--accent)",fontSize:10}}>{hSort.dir==="asc"?"↑":"↓"}</span>:<span style={{color:"var(--ink-3)",fontSize:10}}>⇅</span>;
 
   return <div>
-    <div style={{display:"flex",borderBottom:"1px solid var(--line-3)",marginBottom:20,overflowX:"auto"}}>
+    <SubNav>
       {[["escrow","Pipeline & Escrow"],["calendar","Transaction Calendar"],["history","Sales History"],["stats","Annual Stats"],["commissions","Commissions"],["trends","Trends & Reports"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={subTab(tab===k)}>{l}</button>)}
-    </div>
+    </SubNav>
 
     {tab==="escrow"&&<div>
       <div className="hb-grid-3" style={{marginBottom:18}}><Card l="Pipeline Volume" v={fmtS(eTot.vol)}/><Card l="Gross Commission" v={fmt(eTot.gross)}/><Card l="Agent Commission" v={fmt(eTot.agent)} accent="var(--ok)"/></div>
@@ -2055,9 +2107,9 @@ function MyCMAs({cmas,saveCmas,adjLib,saveAdjLib,adjCats,saveAdjCats,profile,sav
   };
 
   return <div>
-    <div style={{display:"flex",borderBottom:"1px solid var(--line-3)",marginBottom:18,overflowX:"auto"}}>
+    <SubNav>
       {[["library","CMA Library"],["build",editId?"Edit CMA":"New CMA"],["adj","Adjustment Values"]].map(([k,l])=><button key={k} onClick={()=>{setTab(k);if(k==="build"&&!editId)setB(blank());}} style={subTab(tab===k)}>{l}</button>)}
-    </div>
+    </SubNav>
 
     {tab==="library"&&<div>
       <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
@@ -3366,10 +3418,10 @@ function MyOffers({comparisons,saveComparisons,escrow,cmas,adjLib,contacts,profi
 
   // "My Offers" covers both sides of the same job, so the labels have to say
   // which: offers received on a listing, versus an offer a buyer is building.
-  const subBar=<div className="hb-tabs" style={{marginBottom:18,borderBottom:"1px solid var(--line)"}}>
+  const subBar=<SubNav>
     {[["compare","Seller · Compare offers"],["builder","Buyer · Offer builder"]].map(([k,l])=>
       <button key={k} onClick={()=>{ if(k!=="compare") flush(); setTab(k); }} style={subTab(tab===k)}>{l}</button>)}
-  </div>;
+  </SubNav>;
   if(tab==="builder") return <div>{subBar}<OfferBuilderLaunch cmas={cmas} escrow={escrow} contacts={contacts} adjLib={adjLib}/></div>;
 
   if(cmp){
@@ -3853,10 +3905,10 @@ function Settings({settings, saveSettings, profile, saveProfile, stores}) {
   };
 
   return <div>
-    <div style={{display:"flex",gap:2,marginBottom:18,flexWrap:"wrap",borderBottom:"1px solid var(--line)"}}>
+    <SubNav>
       {[["profile","Profile"],["branding","Branding"],["templates","Templates"],["appearance","Appearance"],["lists","Lists & Statuses"],["data","Data"]].map(([k,l])=>
         <button key={k} onClick={()=>setTab(k)} style={subTab(tab===k)}>{l}</button>)}
-    </div>
+    </SubNav>
 
     {tab==="profile"&&<>
     {/* Commission plan */}
