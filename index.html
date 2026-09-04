@@ -977,10 +977,12 @@ function Homebase() {
           : <div style={{width:34,height:34,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
         </div>}
-        <div style={{flex:1}}>
+        <div style={{flex:1,minWidth:0}}>
           <h2 style={{fontSize:24,fontWeight:700,color:"var(--ink)",margin:0,letterSpacing:"-0.4px"}}>Homebase</h2>
           <div style={{fontSize:11,color:"var(--ink-2)",fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",marginTop:1,textTransform:"uppercase",letterSpacing:"0.12em"}}>Every transaction, one place · Luzecky Real Estate</div>
         </div>
+        <button onClick={()=>{ if(confirm("Sign out of Homebase?")) supa.auth.signOut(); }}
+          style={{...btnGhost,flexShrink:0}}>Sign out</button>
       </div>
 
       <div className="hb-tabs" style={{marginBottom:24,borderBottom:"1px solid var(--line)"}}>
@@ -4043,7 +4045,94 @@ function ContactPicker({contacts, onPick, onClose}) {
   </div>;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Homebase));
+
+// ════════════════════════ SIGN IN ════════════════════════
+// Homebase holds closings, commissions and client contacts, and every store
+// reads and writes one shared Supabase table. Until a session exists, nothing
+// in the app is mounted, so no data request is ever made unauthenticated.
+// The Offer Builder is a separate file and stays public — it touches no data.
+function SignIn(){
+  const [email,setEmail]=useState("");
+  const [pw,setPw]=useState("");
+  const [err,setErr]=useState("");
+  const [busy,setBusy]=useState(false);
+
+  const submit=async(e)=>{
+    if(e&&e.preventDefault) e.preventDefault();
+    setErr(""); setBusy(true);
+    try{
+      const {error}=await supa.auth.signInWithPassword({email:email.trim(),password:pw});
+      if(error) setErr(error.message||"That email and password did not match.");
+    }catch(ex){
+      setErr("Could not reach the server. Check your connection and try again.");
+    }
+    setBusy(false);
+  };
+
+  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 16px",background:"var(--paper)",fontFamily:SANS}}>
+    <form onSubmit={submit} style={{width:"100%",maxWidth:380,background:"var(--surface)",border:"1px solid var(--line)",borderRadius:"var(--r)",boxShadow:"var(--sh-2)",padding:"26px 24px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:18}}>
+        <div style={{width:34,height:34,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+        </div>
+        <div>
+          <div style={{fontFamily:SERIF,fontSize:20,fontWeight:700,color:"var(--ink)",letterSpacing:"-0.3px"}}>Homebase</div>
+          <div style={{fontSize:10,color:"var(--ink-2)",textTransform:"uppercase",letterSpacing:"0.12em",marginTop:1}}>Luzecky Real Estate</div>
+        </div>
+      </div>
+
+      <div style={{marginBottom:12}}>
+        <label htmlFor="hb-email" style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:"var(--ink-2)",marginBottom:4}}>Email</label>
+        <input id="hb-email" type="email" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}
+          style={{width:"100%",boxSizing:"border-box",padding:"9px 11px",fontSize:14,borderRadius:"var(--r-sm)",border:"1px solid var(--line-2)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}/>
+      </div>
+      <div style={{marginBottom:16}}>
+        <label htmlFor="hb-pw" style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:"var(--ink-2)",marginBottom:4}}>Password</label>
+        <input id="hb-pw" type="password" autoComplete="current-password" value={pw} onChange={e=>setPw(e.target.value)}
+          style={{width:"100%",boxSizing:"border-box",padding:"9px 11px",fontSize:14,borderRadius:"var(--r-sm)",border:"1px solid var(--line-2)",background:"var(--surface)",color:"var(--ink)",fontFamily:SANS}}/>
+      </div>
+
+      {err&&<div role="alert" style={{fontSize:12.5,color:"var(--bad)",background:"#fdf3f1",border:"1px solid #e6c9c4",borderRadius:"var(--r-sm)",padding:"8px 10px",marginBottom:12,lineHeight:1.5}}>{err}</div>}
+
+      <button type="submit" disabled={busy||!email||!pw}
+        style={{...btnPrimary,width:"100%",padding:"10px 16px",fontSize:13,opacity:(busy||!email||!pw)?0.55:1,cursor:(busy||!email||!pw)?"default":"pointer"}}>
+        {busy?"Signing in…":"Sign in"}
+      </button>
+
+      <div style={{fontSize:11.5,color:"var(--ink-2)",marginTop:14,lineHeight:1.55}}>
+        Forgotten the password? Reset it from the Supabase dashboard under Authentication → Users.
+      </div>
+    </form>
+  </div>;
+}
+
+// Nothing renders until the session state is known, so a brief flash of the
+// sign-in form on reload is avoided and no store mounts without a session.
+function AuthGate(){
+  const [session,setSession]=useState(undefined);   // undefined = still checking
+  const [failed,setFailed]=useState(false);
+
+  useEffect(()=>{
+    let alive=true;
+    supa.auth.getSession()
+      .then(({data})=>{ if(alive) setSession((data&&data.session)||null); })
+      .catch(()=>{ if(alive){ setFailed(true); setSession(null); } });
+    let sub=null;
+    try{ sub=supa.auth.onAuthStateChange((_e,s)=>{ if(alive) setSession(s||null); }); }catch(e){}
+    return ()=>{ alive=false;
+      try{ sub&&sub.data&&sub.data.subscription&&sub.data.subscription.unsubscribe(); }catch(e){}
+    };
+  },[]);
+
+  if(session===undefined) return <div style={{fontFamily:SERIF,color:"var(--ink-2)",textAlign:"center",padding:"80px 20px"}}>Loading Homebase…</div>;
+  if(!session) return <>
+    {failed&&<div style={{fontFamily:SANS,fontSize:12.5,color:"var(--bad)",textAlign:"center",padding:"10px 16px"}}>Could not reach the sign-in service. Check your connection.</div>}
+    <SignIn/>
+  </>;
+  return <Homebase/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(AuthGate));
 
 </script>
 </body>
