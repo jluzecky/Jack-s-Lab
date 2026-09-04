@@ -1,13 +1,10 @@
-# Homebase is plain static HTML with no build step: the files in the repo root
-# are the files that ship. Connecting Netlify to this repo means deploying by
-# pushing, so the number of files stops mattering.
+# Homebase is plain static HTML. There is deliberately no [build] block:
+# on a drag-and-drop deploy there is nothing to build, and declaring
+# publish/command there pointed Netlify at the wrong directory and produced a
+# 404. Git-connected deploys default to the repo root, which is what we want,
+# so the block is unnecessary in both cases.
 
-[build]
-  publish = "."
-  command = ""
-
-# HTML is revalidated every load so a deploy is visible immediately rather than
-# after a cache expiry. The app is a single document, so this is cheap.
+# Revalidate HTML on every load so a new deploy shows up immediately.
 [[headers]]
   for = "/*.html"
   [headers.values]
@@ -18,6 +15,5 @@
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # SAMEORIGIN, not DENY: the offer builder is previewed in an iframe from
-    # inside Homebase, and DENY would break that.
+    # SAMEORIGIN, not DENY: Homebase previews the offer builder in an iframe.
     X-Frame-Options = "SAMEORIGIN"
